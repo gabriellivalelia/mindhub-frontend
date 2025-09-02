@@ -1,21 +1,21 @@
 import {
-  RouterProvider,
   createBrowserRouter,
   createRoutesFromElements,
-  Route,
-  Navigate,
   Outlet,
+  Navigate,
+  Route,
+  RouterProvider,
 } from 'react-router-dom';
 import {
-  Home,
-  PreLogin,
-  Login,
-  Register,
-  Profile,
-  EditProfile,
   Consultations,
   Contents,
+  EditProfile,
+  Home,
+  Login,
   NotFound,
+  Profile,
+  PreLogin,
+  Register,
 } from './pages';
 import { 
   Footer, 
@@ -42,10 +42,10 @@ const router = createBrowserRouter(
     <Route path="/" element={<App />}>
       <Route element={<HasFooterAndHeaderRoutes />}>
         <Route index element={auth ? <Home /> : <PreLogin />} />
-        <Route path="register" element={<Register />} />
-        <Route path="profile" element={<Profile />} />
         <Route path="consultations" element={<Consultations />} />
         <Route path="contents" element={<Contents />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="register" element={<Register />} />
       </Route>
 
       <Route path="login" element={<Login />} />
