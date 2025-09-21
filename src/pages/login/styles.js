@@ -250,6 +250,7 @@ export const TextButton = styled.button`
 
   &:hover {
     cursor: pointer;
+    font-size: ${FontSizes.LARGE};
     font-weight: bolder;
   }
 `;
