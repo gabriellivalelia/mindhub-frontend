@@ -12,24 +12,24 @@ import {
 } from "./createUserFormSchema";
 
 import {
-  PageContainer,
   Container,
   FormContainer,
-  ToggleContainer,
-  ToggleButton,
   Form,
-  InputContainer,
   FullWidthInputContainer, 
-  InputAndLabelBox,
   Input,
+  InputAndLabelBox,
+  InputContainer,
   Label,
   LoaderBox,
   Message,
-  
-  /*Select,*/
+  PageContainer,
   StyledMaskInput,
   SubmitButton,
+  Text,
   TextButton,
+  TextButtonContainer,
+  ToggleButton,
+  ToggleContainer,
 } from "./styles";
 
 import { SubHeader } from "../../components";
@@ -47,20 +47,20 @@ import Select from 'react-select'
 const customStyles = {
   control: (provided) => ({
     ...provided,
-    border: "none",       // remove borda
-    boxShadow: "none",    // remove sombra ao focar
-    minHeight: "22px",    // diminui altura do componente
+    border: "none",     
+    boxShadow: "none",   
+    minHeight: "22px",    
     height: "22px",
     fontSize: FontSizes.SMALLEST
   }),
   valueContainer: (provided) => ({
     ...provided,
     height: "22px",
-    padding: "0.25rem 0",     // ajusta padding
+    padding: "0.25rem 0",    
   }),
   input: (provided) => ({
     ...provided,
-    margin: 0,            // remove espaçamento extra
+    margin: 0,            
     padding: 0,
   }),
   indicatorsContainer: (provided) => ({
@@ -341,10 +341,12 @@ function Register() {
               <SubmitButton type="submit" value="Cadastrar" />
             )}
           </Form>
-
+          <TextButtonContainer>
+            <Text>Já tem uma conta?</Text>
           <TextButton onClick={() => navigate("/Login")}>
-            Já tem uma conta? Entre por aqui
+          Entre por aqui
           </TextButton>
+          </TextButtonContainer>
         </FormContainer>
       </Container>
     </PageContainer>
