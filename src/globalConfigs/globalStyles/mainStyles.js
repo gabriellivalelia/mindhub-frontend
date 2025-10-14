@@ -1,4 +1,5 @@
-import { createGlobalStyle } from 'styled-components';
+import { createGlobalStyle } from "styled-components";
+import Colors from "./colors";
 
 export default createGlobalStyle`
 
@@ -10,7 +11,7 @@ export default createGlobalStyle`
 }
 
 body {
-  background: linear-gradient(270deg, #64A684 0%, #FFFFFF 100%);
+  background: linear-gradient(270deg, ${Colors.GREEN} 0%, ${Colors.WHITE} 100%);
   text-rendering: optimizeLegibility;
   font-family: 'Poppins', sans-serif;
   -webkit-font-smoothing: antialiased;

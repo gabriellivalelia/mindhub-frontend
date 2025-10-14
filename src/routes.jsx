@@ -16,6 +16,8 @@ import {
   Profile,
   PreLogin,
   Register,
+  ScheduleNewAppointment,
+  Payment,
 } from './pages';
 import { 
   Footer, 
@@ -23,6 +25,7 @@ import {
 } from './components';
 
 import App from './App';
+import { getToken } from './utils/auth';
 
 //Para as rotas que precisam de Footer e Header
 function HasFooterAndHeaderRoutes() {
@@ -35,7 +38,7 @@ function HasFooterAndHeaderRoutes() {
   );
 }
 
-const auth = false; //TO DO: Implementar o sistema de obter autenticação;
+const auth = getToken();
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -46,6 +49,9 @@ const router = createBrowserRouter(
         <Route path="contents" element={<Contents />} />
         <Route path="profile" element={<Profile />} />
         <Route path="register" element={<Register />} />
+        <Route path="edit-profile" element={<EditProfile />} />
+        <Route path="schedule-new-appointment" element={<ScheduleNewAppointment />} />
+        <Route path="payment" element={<Payment />} />
       </Route>
 
       <Route path="login" element={<Login />} />

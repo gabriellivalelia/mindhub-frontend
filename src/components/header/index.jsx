@@ -17,10 +17,11 @@ import Dropdown from "antd/es/dropdown/dropdown";
 import { DropDownOptions } from "./dropDownOptions";
 import { MoreOutlined } from "@ant-design/icons";
 import { Colors, FontSizes } from "../../globalConfigs";
+import { getToken } from "../../utils/auth";
 
 function Header() {
- 
-  const authenticated = false; //TO DO: Autenticação
+
+  const authenticated = !!getToken();
   const dropDownOptions = DropDownOptions(authenticated);
   const navigate = useNavigate();
  

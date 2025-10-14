@@ -75,7 +75,6 @@ function Register() {
   const [loading, setLoading] = useState(false);
   const [registerError, setRegisterError] = useState("");
   const navigate = useNavigate();
-  const authenticated = false;
 
   const currentSchema =
     userType === "pacient"
