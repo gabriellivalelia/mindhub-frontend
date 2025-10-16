@@ -103,4 +103,41 @@ export const AppointmentItem = styled.div`
   }
 `;
 
+export const SectionTitle = styled.h4`
+  margin: 0 0 0.5rem 0;
+  border-bottom: 2px solid ${Colors.PURPLE};
+  padding-bottom: 0.4rem;
+`;
+
+export const Row = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: ${(p) => p.p || "0"};
+`;
+
+export const Avatar = styled.img`
+  width: ${(p) => p.size || 72}px;
+  height: ${(p) => p.size || 72}px;
+  border-radius: ${(p) => Math.round((p.size || 72) / 2)}px;
+  object-fit: cover;
+`;
+
+export const StrongText = styled.div`
+  font-weight: 700;
+`;
+
+export const MutedText = styled.div`
+  color: ${Colors.GREY};
+`;
+
+export const Padded = styled.div`
+  padding: ${(p) => p.p || "0"};
+`;
+
+export const RightText = styled.div`
+  min-width: ${(p) => p.minWidth || "100px"};
+  text-align: ${(p) => p.align || "right"};
+`;
+
 export default {};

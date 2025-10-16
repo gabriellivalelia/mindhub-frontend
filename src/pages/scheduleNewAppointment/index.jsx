@@ -33,6 +33,12 @@ import {
   DialogLabel,
   DialogValue,
   InfoWithIcon,
+  FullWidth,
+  FilterTitle,
+  LabelSmall,
+  RowBetween,
+  RatingRow,
+  Section,
 
 } from "./styles";
 
@@ -54,6 +60,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
+import TextField from '@mui/material/TextField';
 import Pagination from '@mui/material/Pagination';
 import { SubHeader } from "../../components";
 import Colors from "../../globalConfigs/globalStyles/colors";
@@ -79,6 +86,11 @@ function ScheduleNewAppointment() {
   const navigate = useNavigate();
   console.log(psychologists[0].slots);
   const [selectedCategories, setSelectedCategories] = React.useState([]);
+  const [genderFilter, setGenderFilter] = React.useState('Todos');
+  const [approachesFilter, setApproachesFilter] = React.useState([]);
+  const [audienceFilter, setAudienceFilter] = React.useState('Todos');
+  const [dateFilter, setDateFilter] = React.useState('');
+  const [timeFilter, setTimeFilter] = React.useState('');
 
   const categoryOptions = React.useMemo(() => [
     { value: 'ansiedade', label: 'Ansiedade' },
@@ -92,51 +104,57 @@ function ScheduleNewAppointment() {
       ...provided,
       border: `2px solid ${Colors.ORANGE}`,
       borderRadius: 6,
-      minHeight: 36,
-      height: 36,
-      boxShadow: 'none',
+      minHeight: 44,
+      height: 'auto',
+  boxShadow: 'none',
       background: 'transparent',
       '&:hover': { borderColor: Colors.ORANGE },
       outline: 'none',
-      overflow: 'hidden',
+      overflow: 'visible',
+      alignItems: 'flex-start',
+      // ensure no blue focus ring from default browser/react-select
+      borderColor: Colors.ORANGE,
     }),
     valueContainer: (provided) => ({
       ...provided,
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       flexWrap: 'wrap',
       gap: 6,
       padding: '0.2rem 0.6rem 0.4rem 0.4rem',
-      height: 36,
+      minHeight: 44,
+      height: 'auto',
       fontSize: FontSizes.SMALL,
-      overflow: 'hidden',
+      overflow: 'visible',
     }),
     singleValue: (provided) => ({ ...provided, fontSize: FontSizes.SMALL, color: Colors.DARK_GREY }),
     placeholder: (provided) => ({ ...provided, fontSize: FontSizes.SMALL, color: Colors.GREY }),
     input: (provided) => ({ ...provided, margin: 0, padding: 0, fontSize: FontSizes.SMALL }),
-    indicatorsContainer: (provided) => ({ ...provided, height: 36 }),
+  indicatorsContainer: (provided) => ({ ...provided, height: 44, paddingTop: 6 }),
     multiValue: (provided) => ({
       ...provided,
-      backgroundColor: Colors.WHITE,
-      color: Colors.LIGHT_ORANGE,
+      backgroundColor: Colors.LIGHT_ORANGE,
+      color: Colors.WHITE,
       fontSize: FontSizes.SMALL,
-      maxWidth: '100%',
+      maxWidth: 'none',
       display: 'inline-flex',
       alignItems: 'center',
+      borderRadius: 6,
+      padding: '0 6px',
+      margin: '2px 6px 2px 0',
     }),
     multiValueLabel: (provided) => ({
       ...provided,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-      maxWidth: '8rem',
+      overflow: 'visible',
+      textOverflow: 'clip',
+      whiteSpace: 'normal',
+      maxWidth: 'none',
       fontSize: FontSizes.SMALL,
-      color: Colors.LIGHT_ORANGE,
+      color: Colors.WHITE,
     }),
     multiValueRemove: (provided) => ({
       ...provided,
-      color: Colors.ORANGE,
-      ':hover': { backgroundColor: Colors.ORANGE, color: Colors.WHITE },
+      marginLeft: 6,
     }),
     clearIndicator: (provided) => ({ ...provided, color: Colors.ORANGE, ':hover': { color: Colors.LIGHT_ORANGE } }),
     dropdownIndicator: (provided) => ({ ...provided, color: Colors.ORANGE }),
@@ -163,6 +181,91 @@ function ScheduleNewAppointment() {
       maxHeight: '240px',
     }),
   }), []);
+
+  // smallSelectStyles keeps the compact 36px height for the specialties search
+  const smallSelectStyles = React.useMemo(() => ({
+    ...selectStyles,
+    control: (provided) => ({
+      ...provided,
+      minHeight: 36,
+      height: 36,
+      alignItems: 'center',
+      border: `2px solid ${Colors.ORANGE}`,
+      background: 'transparent',
+      '&:hover': { borderColor: Colors.ORANGE },
+    }),
+    valueContainer: (provided) => ({
+      ...provided,
+      minHeight: 36,
+      height: 36,
+      alignItems: 'center',
+      padding: '0 6px',
+    }),
+    indicatorsContainer: (provided) => ({ ...provided, height: 36, paddingTop: 0 }),
+  }), [selectStyles]);
+
+  // build approaches options from data
+  const approachOptions = React.useMemo(() => {
+    const set = new Set();
+    psychologists.forEach(p => p.approaches.forEach(a => set.add(a)));
+    return Array.from(set).map(a => ({ value: a, label: a }));
+  }, []);
+
+  const applyFilters = () => {
+    setPage(1);
+    setIsFilterOpen(false);
+  };
+
+  const clearFilters = () => {
+    setGenderFilter('Todos');
+    setApproachesFilter([]);
+    setAudienceFilter('Todos');
+    setDateFilter('');
+    setTimeFilter('');
+    setPage(1);
+  };
+
+  const filteredPsychologists = React.useMemo(() => {
+    return psychologists.filter((p) => {
+      // specialties (selectedCategories) filtering if set
+      if (selectedCategories && selectedCategories.length) {
+        const selected = selectedCategories.map(c => c.label.toLowerCase());
+        const hasAny = p.specialties.some(s => selected.includes(s.toLowerCase()));
+        if (!hasAny) return false;
+      }
+
+      // gender filter
+      if (genderFilter && genderFilter !== 'Todos' && p.gender !== genderFilter) return false;
+
+      // approaches multi-select
+      if (approachesFilter && approachesFilter.length) {
+        const sel = approachesFilter.map(a => a.value.toLowerCase());
+        const hasApproach = p.approaches.some(ap => sel.includes(ap.toLowerCase()));
+        if (!hasApproach) return false;
+      }
+
+      // audience filter - data doesn't currently include audience field
+      // if you later add p.audience, enable this filter. For now we skip.
+      if (audienceFilter && audienceFilter !== 'Todos') {
+        if (p.audience && p.audience !== audienceFilter) return false;
+      }
+
+      // date/time filter: keep psychologists that have at least one slot matching date/time
+      if (dateFilter || timeFilter) {
+        const matches = p.slots.some(s => {
+          const slotDate = new Date(s.date);
+          const slotDay = slotDate.toISOString().slice(0,10);
+          const slotTime = slotDate.toISOString().slice(11,16);
+          if (dateFilter && slotDay !== dateFilter) return false;
+          if (timeFilter && slotTime !== timeFilter) return false;
+          return s.available !== false; // ensure slot available
+        });
+        if (!matches) return false;
+      }
+
+      return true;
+    });
+  }, [selectedCategories, genderFilter, approachesFilter, audienceFilter, dateFilter, timeFilter]);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [dialogData, setDialogData] = React.useState(null);
 
@@ -195,17 +298,17 @@ function ScheduleNewAppointment() {
       <Container>
         <FiltersContainer>
           <SearchContainer>
-            <div style={{ width: '100%' }}>
+            <FullWidth>
               <ReactSelect
                 isMulti
                 options={categoryOptions}
                 value={selectedCategories}
                 onChange={(v) => setSelectedCategories(v)}
-                styles={selectStyles}
+                styles={smallSelectStyles}
                 placeholder="Buscar por especialidade"
                 closeMenuOnSelect={false}
               />
-            </div>
+            </FullWidth>
             <CurrencyContainer>
               <CurrencyLabel>Valor máximo por consulta</CurrencyLabel>
               <CurrencyInput type="text" placeholder="R$ 0,00" />
@@ -220,26 +323,92 @@ function ScheduleNewAppointment() {
           open={isFilterOpen}
           onClose={() => setIsFilterOpen(false)}
           >
-          <Box sx={{ width: 320, padding: 2 }} role="presentation">
-            <h3>Filtros</h3>
-            <div>
-              <label>
-                Status:
-                <select>
-                  <option>Todos</option>
-                  <option>Agendada</option>
-                  <option>Confirmada</option>
-                  <option>Cancelada</option>
-                  <option>Realizada</option>
-                </select>
-              </label>
-            </div>
+            <Box sx={{ width: 360, padding: 2 }} role="presentation">
+            <FilterTitle>Filtros</FilterTitle>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <FormControl fullWidth size="small" sx={{ '& .MuiInputLabel-root.Mui-focused': { color: Colors.ORANGE }, '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: Colors.ORANGE } }}>
+                <InputLabel id="gender-filter-label">Gênero</InputLabel>
+                <Select
+                  labelId="gender-filter-label"
+                  id="gender-filter"
+                  value={genderFilter}
+                  label="Gênero"
+                  onChange={(e) => setGenderFilter(e.target.value)}
+                  MenuProps={{ PaperProps: { sx: { '& .MuiMenuItem-root.Mui-selected': { backgroundColor: Colors.ORANGE, color: Colors.WHITE }, '& .MuiMenuItem-root:hover': { backgroundColor: Colors.LIGHT_ORANGE } } } }}
+                >
+                  <MenuItem value="Todos">Todos</MenuItem>
+                  <MenuItem value="Feminino">Feminino</MenuItem>
+                  <MenuItem value="Masculino">Masculino</MenuItem>
+                </Select>
+              </FormControl>
+
+              <div>
+                <LabelSmall>Abordagens</LabelSmall>
+                <FullWidth>
+                  <ReactSelect
+                    isMulti
+                    options={approachOptions}
+                    value={approachesFilter}
+                    onChange={(v) => setApproachesFilter(v || [])}
+                    styles={selectStyles}
+                    placeholder="Selecionar abordagens"
+                    closeMenuOnSelect={false}
+                  />
+                </FullWidth>
+              </div>
+
+              <FormControl fullWidth size="small" sx={{ '& .MuiInputLabel-root.Mui-focused': { color: Colors.ORANGE }, '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: Colors.ORANGE } }}>
+                <InputLabel id="audience-filter-label">Público</InputLabel>
+                <Select
+                  labelId="audience-filter-label"
+                  id="audience-filter"
+                  value={audienceFilter}
+                  label="Público"
+                  onChange={(e) => setAudienceFilter(e.target.value)}
+                  MenuProps={{ PaperProps: { sx: { '& .MuiMenuItem-root.Mui-selected': { backgroundColor: Colors.ORANGE, color: Colors.WHITE }, '& .MuiMenuItem-root:hover': { backgroundColor: Colors.LIGHT_ORANGE } } } }}
+                >
+                  <MenuItem value="Todos">Todos</MenuItem>
+                  <MenuItem value="Adultos">Adultos</MenuItem>
+                  <MenuItem value="Crianças">Crianças</MenuItem>
+                </Select>
+              </FormControl>
+
+              <TextField
+                label="Data"
+                type="date"
+                size="small"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ '& .MuiInputBase-input': { fontSize: FontSizes.SMALL }, '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: Colors.ORANGE }, '& .MuiInputLabel-root.Mui-focused': { color: Colors.ORANGE } }}
+              />
+
+              <TextField
+                label="Hora"
+                type="time"
+                size="small"
+                value={timeFilter}
+                onChange={(e) => setTimeFilter(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ '& .MuiInputBase-input': { fontSize: FontSizes.SMALL }, '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: Colors.ORANGE }, '& .MuiInputLabel-root.Mui-focused': { color: Colors.ORANGE } }}
+              />
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                <Button variant="outlined" onClick={clearFilters} sx={{ borderColor: Colors.ORANGE, color: Colors.ORANGE, textTransform: 'none' }}>
+                  Limpar
+                </Button>
+                <Button variant="contained" onClick={applyFilters} sx={{ backgroundColor: Colors.ORANGE, color: Colors.WHITE, textTransform: 'none', '&:hover': { backgroundColor: Colors.LIGHT_ORANGE } }}>
+                  Aplicar
+                </Button>
+              </Box>
+            </Stack>
           </Box>
         </Drawer>
 
         <PsychologistsContainer>
-          <Stack style={{ width: '100%' }} alignItems="flex-start" spacing={2}>
-            {psychologists?.slice((page - 1) * pageSize, page * pageSize).map((psychologist) => (
+          <FullWidth>
+            <Stack alignItems="flex-start" spacing={2}>
+            {filteredPsychologists?.slice((page - 1) * pageSize, page * pageSize).map((psychologist) => (
               <PsychologistCard key={psychologist.id}>
                 <ProfileContainer>
                   <ProfessionalPictureContainer>
@@ -291,9 +460,9 @@ function ScheduleNewAppointment() {
               </PsychologistCard>
             ))}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <RowBetween>
               <Pagination
-                count={Math.max(1, Math.ceil((psychologists?.length || 0) / pageSize))}
+                count={Math.max(1, Math.ceil((filteredPsychologists?.length || 0) / pageSize))}
                 page={page}
                 onChange={(e, value) => setPage(value)}
                 sx={{
@@ -304,11 +473,11 @@ function ScheduleNewAppointment() {
                 }}
               />
 
-              <FormControl sx={{ minWidth: 160, '& .MuiInputLabel-root.Mui-focused': { color: Colors.ORANGE }, '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: Colors.ORANGE } }}>
+              <FormControl sx={{ minWidth: 180, width: 180, '& .MuiInputLabel-root.Mui-focused': { color: Colors.ORANGE }, '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: Colors.ORANGE } }}>
                 <InputLabel id="page-size-label">Linhas por página</InputLabel>
                 <Select
                   size="small"
-                sx={{ height: 36, '& .MuiSvgIcon-root': { color: Colors.ORANGE } }}
+                  sx={{ height: 44, minWidth: 180, width: 180, '& .MuiSvgIcon-root': { color: Colors.ORANGE } }}
                   label="Linhas por página"
                   onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}
                   value={pageSize}
@@ -324,6 +493,7 @@ function ScheduleNewAppointment() {
                         '& .MuiMenuItem-root.Mui-selected:hover': {
                           backgroundColor: Colors.ORANGE,
                         },
+                          sx: { minWidth: 180 }
                       },
                     },
                   }}
@@ -333,8 +503,9 @@ function ScheduleNewAppointment() {
                   <MenuItem value={25}>50</MenuItem>
                 </Select>
               </FormControl>
-            </div>
-          </Stack>
+            </RowBetween>
+            </Stack>
+          </FullWidth>
         </PsychologistsContainer>
         <Dialog open={dialogOpen} onClose={handleDialogClose} aria-labelledby="booking-dialog-title">
           <DialogTitle id="booking-dialog-title">Confirmar Agendamento</DialogTitle>
@@ -347,37 +518,37 @@ function ScheduleNewAppointment() {
                     <DialogInfo>
                       <DialogLabel>{dialogData.psychologist.name}</DialogLabel>
                       <DialogValue>{dialogData.psychologist.crp}</DialogValue>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <RatingRow>
                         <Rating value={dialogData.psychologist.rating} precision={0.1} readOnly size="small" sx={{ color: Colors.ORANGE }} />
-                        <span>{Number(dialogData.psychologist.rating).toFixed(1)}</span>
-                      </div>
+                          <span>{Number(dialogData.psychologist.rating).toFixed(1)}</span>
+                        </RatingRow>
                     </DialogInfo>
                   </DialogProfile>
 
-                  <div style={{ marginTop: 12 }}>
+                  <Section mt="12px">
                     <DialogLabel>Especialidades</DialogLabel>
                     <DialogValue>{dialogData.psychologist.specialties.join(', ')}</DialogValue>
-                  </div>
+                  </Section>
 
-                  <div style={{ marginTop: 8 }}>
+                  <Section mt="8px">
                     <DialogLabel>Abordagens</DialogLabel>
                     <DialogValue>{dialogData.psychologist.approaches.join(', ')}</DialogValue>
-                  </div>
+                  </Section>
 
-                  <div style={{ marginTop: 8 }}>
+                  <Section mt="8px">
                     <DialogLabel>Duração</DialogLabel>
                     <DialogValue>{dialogData.psychologist.duration}</DialogValue>
-                  </div>
+                  </Section>
 
-                  <div style={{ marginTop: 12 }}>
+                  <Section mt="12px">
                     <DialogLabel>Horário selecionado</DialogLabel>
                     <DialogValue>{dialogData.slot?.day} {dialogData.slot?.time}</DialogValue>
-                  </div>
+                  </Section>
 
-                  <div style={{ marginTop: 8 }}>
+                  <Section mt="8px">
                     <DialogLabel>Valor</DialogLabel>
                     <DialogValue>{dialogData.psychologist.price}</DialogValue>
-                  </div>
+                  </Section>
                 </div>
               ) : 'Nenhuma seleção.'}
             </DialogContentText>

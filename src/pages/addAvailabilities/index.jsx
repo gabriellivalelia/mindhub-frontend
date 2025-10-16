@@ -23,7 +23,7 @@ const AddAvailabilitiesPage = () => {
       <SubHeader text="Meus Horários Disponíveis" />
       <Container>
         <TopRow>
-          <div style={{ fontWeight: 700 }}>Defina seus horários disponíveis</div>
+          <TitleStrong>Defina seus horários disponíveis</TitleStrong>
           <Actions>
             <Button variant="outlined" sx={{ borderColor: Colors.ORANGE, color: Colors.ORANGE }} onClick={() => setSelectedSlots([])}>Limpar</Button>
             <Button variant="contained" sx={{ backgroundColor: Colors.ORANGE, color: Colors.WHITE }} onClick={handleSave}>Salvar</Button>

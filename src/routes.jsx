@@ -7,7 +7,7 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import {
-  Consultations,
+  AppointmentsPatient,
   Contents,
   EditProfile,
   Home,
@@ -16,6 +16,7 @@ import {
   Profile,
   PreLogin,
   Register,
+  WriteContent,
   ScheduleNewAppointment,
   Payment,
 } from './pages';
@@ -26,6 +27,7 @@ import {
 
 import App from './App';
 import { getToken } from './utils/auth';
+import { AppointmentItem } from './pages/home/styles';
 
 //Para as rotas que precisam de Footer e Header
 function HasFooterAndHeaderRoutes() {
@@ -45,10 +47,11 @@ const router = createBrowserRouter(
     <Route path="/" element={<App />}>
       <Route element={<HasFooterAndHeaderRoutes />}>
         <Route index element={auth ? <Home /> : <PreLogin />} />
-        <Route path="consultations" element={<Consultations />} />
+        <Route path="appointmentsPatient" element={<AppointmentsPatient />} />
         <Route path="contents" element={<Contents />} />
         <Route path="profile" element={<Profile />} />
         <Route path="register" element={<Register />} />
+  <Route path="write-content" element={<WriteContent />} />
         <Route path="edit-profile" element={<EditProfile />} />
         <Route path="schedule-new-appointment" element={<ScheduleNewAppointment />} />
         <Route path="payment" element={<Payment />} />

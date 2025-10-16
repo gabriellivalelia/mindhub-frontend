@@ -120,4 +120,47 @@ export const Avatar = styled.img`
   object-fit: cover;
 `;
 
+export const FlexRow = styled.div`
+  display: flex;
+  gap: ${(p) => p.gap || "12px"};
+  align-items: ${(p) => p.align || "center"};
+  justify-content: ${(p) => p.justify || "flex-start"};
+  padding: ${(p) => p.p || "0"};
+`;
+
+export const RightAligned = styled.div`
+  text-align: right;
+`;
+
+export const QrImage = styled.img`
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+`;
+
+export const QrPlaceholder = styled.div`
+  width: 200px;
+  height: 200px;
+  background: rgba(115, 115, 115, 0.06);
+`;
+
+export const ButtonsRow = styled.div`
+  display: flex;
+  gap: 8px;
+  width: 100%;
+`;
+
+export const PriceStrong = styled.div`
+  margin-top: 8px;
+  font-weight: 700;
+`;
+
+export const Section = styled.div`
+  margin-top: ${(p) => p.mt || "0"};
+`;
+
+export const BoldText = styled.div`
+  font-weight: 700;
+`;
+
 export default {};

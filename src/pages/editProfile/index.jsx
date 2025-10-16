@@ -137,7 +137,7 @@ function EditProfile() {
               </InputAndLabelBox>
             </InputContainer>
 
-            <Message style={{ gridColumn: '1 / -1' }}>{errors?.form}</Message>
+            <FullMessage>{errors?.form}</FullMessage>
 
             <SubmitButton type="submit" value="Salvar alterações" />
           </Form>

@@ -371,3 +371,36 @@ export const DialogValue = styled.div`
   font-size: ${FontSizes.SMALL};
   color: ${Colors.DARK_GREY};
 `;
+
+// small layout helpers used by the page to replace inline styles
+export const FullWidth = styled.div`
+  width: 100%;
+`;
+
+export const FilterTitle = styled.h3`
+  color: ${Colors.DARK_GREY};
+  margin: 0;
+`;
+
+export const LabelSmall = styled.div`
+  font-size: ${FontSizes.SMALL};
+  color: ${Colors.DARK_GRAY};
+  margin-bottom: 6px;
+`;
+
+export const RowBetween = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
+
+export const RatingRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+export const Section = styled.div`
+  margin-top: ${(p) => p.mt || "0"};
+`;

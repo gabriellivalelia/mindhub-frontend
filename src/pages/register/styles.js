@@ -166,6 +166,12 @@ export const Message = styled.p`
   margin: 0;
 `;
 
+export const FullMessage = styled(Message)`
+  grid-column: 1 / -1;
+  text-align: center;
+  height: auto;
+`;
+
 export const TextButtonContainer = styled.div`
   align-items: center;
   display: flex;

@@ -322,15 +322,7 @@ function Register() {
               )}
             </InputContainer>
 
-            <Message
-              style={{
-                gridColumn: "1 / -1",
-                textAlign: "center",
-                height: "auto",
-              }}
-            >
-              {registerError}
-            </Message>
+            <FullMessage>{registerError}</FullMessage>
 
             {loading ? (
               <LoaderBox>

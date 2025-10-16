@@ -9,7 +9,7 @@ export const DropDownOptions = (authenticated)=> authenticated
       },
       {
         key: "2",
-        label: <Link to="/consultations">Consultas</Link>,
+        label: <Link to="/appointmentsPatient">Consultas</Link>,
       },
       {
         key: "3",

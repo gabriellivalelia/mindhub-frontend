@@ -30,7 +30,7 @@ import { useState } from "react";
 import { LoginFormSchema } from "./loginFormSchema";
 import GoogleIconsSrc from "../../assets/googleIcon.png";
 import LogoSrc from "../../assets/logo.png";
-import { setToken } from "../../utils/auth";
+import { setToken, setUserType } from "../../utils/auth";
 
 function Login() {
   const navigate = useNavigate();
@@ -53,11 +53,14 @@ function Login() {
         data.email === "gabrielli@gmail.com" &&
         data.password === "12345678"
       ) {
-  // Exemplo: armazenar um token no localStorage quando o login for bem-sucedido.
-  // Em uma integração real, substitua pelo token retornado pela API: setToken(response.data.token)
-  const fakeToken = "fake-jwt-token-123456";
-  setToken(fakeToken);
-        navigate("/consultations");
+        // Exemplo: armazenar um token no localStorage quando o login for bem-sucedido.
+        // Em uma integração real, substitua pelo token retornado pela API: setToken(response.data.token)
+        const fakeToken = "fake-jwt-token-123456";
+        setToken(fakeToken);
+        // Demo: determinar um tipo de usuário simples baseado no email
+        const demoUserType = data.email.includes('gabrielli') ? 'patient' : 'psychologist';
+        setUserType(demoUserType);
+        navigate("/appointmentsPatient");
       } else {
         alert(`Errou. ${data.email} ${data.password}`);
       }

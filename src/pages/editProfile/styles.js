@@ -118,6 +118,10 @@ export const Message = styled.p`
   margin: 0;
 `;
 
+export const FullMessage = styled(Message)`
+  grid-column: 1 / -1;
+`;
+
 export const AvatarRow = styled.div`
   display: flex;
   gap: 1rem;

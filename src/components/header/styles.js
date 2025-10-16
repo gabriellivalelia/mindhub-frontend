@@ -16,7 +16,7 @@ export const LogoContainer = styled.div`
   display: flex;
   height: 100%;
   justify-content: start;
-  
+
   @media (max-width: ${BreakPoints.MOBILE}) {
     min-width: 65%;
   }
@@ -24,7 +24,7 @@ export const LogoContainer = styled.div`
 
 export const Logo = styled.img`
   height: 75%;
-  
+
   @media (max-width: ${BreakPoints.MOBILE}) {
     height: 45px;
   }
@@ -105,10 +105,16 @@ export const ImageProfileContainer = styled.div`
 
 export const ImageProfile = styled.img`
   border-radius: 50%;
-  height: 75%;
+  height: 85%;
+  min-width: 56px;
+  min-height: 56px;
+  max-width: 72px;
+  max-height: 72px;
 
   @media (max-width: ${BreakPoints.MOBILE}) {
-    height: 45px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
   }
 
   &:hover {

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { PageContainer, Container, Card, NextAppointment, UpcomingList, BottomActions, AppointmentItem, ActionsRow, TopActions } from './styles';
+import { PageContainer, Container, Card, NextAppointment, UpcomingList, BottomActions, AppointmentItem, ActionsRow, TopActions, SectionTitle, Row, Avatar, StrongText, MutedText, Padded, RightText } from './styles';
 import { SubHeader } from '../../components';
 import { homeUpcoming, nextAppointment } from './homeData';
 import Button from '@mui/material/Button';
@@ -32,18 +32,18 @@ function Home() {
       <SubHeader text="Home" />
       <Container>
         <Card>
-          <h4 style={{ borderBottom: `2px solid ${Colors.PURPLE}` }}>Próxima Consulta</h4>
+          <SectionTitle>Próxima Consulta</SectionTitle>
           {next ? (
             <NextAppointment>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '2%' }}>
-                <img src={next.professionalPicture} alt={next.professional} style={{ width: 72, height: 72, borderRadius: 40, objectFit: 'cover' }} />
-                <div>
-                  <div style={{ fontWeight: 700 }}>{next.professional}</div>
-                  <div style={{ color: Colors.GREY }}>{new Date(next.datetime).toLocaleString()}</div>
-                </div>
-              </div>
+                <Row p="2%">
+                  <Avatar src={next.professionalPicture} alt={next.professional} />
+                  <div>
+                    <StrongText>{next.professional}</StrongText>
+                    <MutedText>{new Date(next.datetime).toLocaleString()}</MutedText>
+                  </div>
+                </Row>
               <ActionsRow>
-                <Button  sx={{ borderColor: 'none', color: Colors.GREY }} onClick={() => navigate('/consultations')}><MoreHoriz /></Button>
+                <Button  sx={{ borderColor: 'none', color: Colors.GREY }} onClick={() => navigate('/appointmentsPatient')}><MoreHoriz /></Button>
               </ActionsRow>
             </NextAppointment>
           ) : (
@@ -52,20 +52,20 @@ function Home() {
         </Card>
 
         <Card>
-          <h4 style={{ borderBottom: `2px solid ${Colors.PURPLE}` }}>Última Consulta</h4>
+          <SectionTitle>Última Consulta</SectionTitle>
           {lastPast ? (
-            <AppointmentItem>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '2%' }}>
-                <img src={lastPast.professionalPicture} alt={lastPast.professional} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700 }}>{lastPast.professional}</div>
-                  <div style={{ color: Colors.GREY }}>{new Date(lastPast.datetime).toLocaleString()}</div>
-                </div>
-                <div style={{ minWidth: 100, textAlign: 'right' }}>{lastPast.status}</div>
-              </div>
-            </AppointmentItem>
+              <AppointmentItem>
+                <Row p="2%">
+                  <Avatar src={lastPast.professionalPicture} alt={lastPast.professional} size={48} />
+                  <div style={{ flex: 1 }}>
+                    <StrongText>{lastPast.professional}</StrongText>
+                    <MutedText>{new Date(lastPast.datetime).toLocaleString()}</MutedText>
+                  </div>
+                  <RightText>{lastPast.status}</RightText>
+                </Row>
+              </AppointmentItem>
           ) : (
-            <div style={{ padding: '2%' }}>Nenhuma consulta anterior registrada.</div>
+            <Padded p="2%">Nenhuma consulta anterior registrada.</Padded>
           )}
           {/* brown button moved to TopActions */}
         </Card>

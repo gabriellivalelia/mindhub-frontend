@@ -13,16 +13,13 @@ import {
 } from "./styles";
 import LogoSrc from "../../assets/logo.png";
 import ProfileSrc from "../../assets/profile.jpeg";
-import Dropdown from "antd/es/dropdown/dropdown";
-import { DropDownOptions } from "./dropDownOptions";
-import { MoreOutlined } from "@ant-design/icons";
+import AccountMenu from './accountMenu';
 import { Colors, FontSizes } from "../../globalConfigs";
 import { getToken } from "../../utils/auth";
 
 function Header() {
 
   const authenticated = !!getToken();
-  const dropDownOptions = DropDownOptions(authenticated);
   const navigate = useNavigate();
  
   return (
@@ -34,7 +31,7 @@ function Header() {
           <Link to="/">
             <NavBarHover>Home</NavBarHover>
           </Link>
-          <Link to="/consultations">
+          <Link to="/appointmentsPatient">
             <NavBarHover>Consultas</NavBarHover>
           </Link>
           <Link to="/contents">
@@ -49,23 +46,12 @@ function Header() {
           </Button>
         </ButtonContainer>
         <ImageProfileContainer authenticated={authenticated}>
-          <ImageProfile src={ProfileSrc} />
+          {authenticated ? (
+            <AccountMenu avatarSrc={ProfileSrc} />
+          ) : (
+            <ImageProfile src={ProfileSrc} />
+          )}
         </ImageProfileContainer>
-        <DropDownContainer authenticated={authenticated}>
-          <Dropdown
-            menu={{
-              dropDownOptions,
-            }}
-            placement="bottom"
-          >
-            <MoreOutlined
-              style={{
-                fontSize: FontSizes.LARGE,
-                color: Colors.WHITE,
-              }}
-            />
-          </Dropdown>
-        </DropDownContainer>
       </MainContainer>
   );
 }

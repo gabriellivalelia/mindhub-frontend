@@ -48,6 +48,10 @@ export const Actions = styled.div`
   }
 `;
 
+export const TitleStrong = styled.div`
+  font-weight: 700;
+`;
+
 export const MainCard = styled.div`
   width: 100%;
   background: ${Colors.WHITE};

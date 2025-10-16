@@ -191,3 +191,20 @@ export const ScheduleNewAppointmentButton = styled.button`
     cursor: pointer;
   }
 `;
+
+// helpers
+export const FilterTitle = styled.h3`
+  color: ${Colors.DARK_GRAY};
+  margin: 0;
+`;
+
+export const FullWidth = styled.div`
+  width: 100%;
+`;
+
+export const RowBetween = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;

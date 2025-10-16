@@ -1,4 +1,4 @@
-export { default as Consultations } from "./consultations/index";
+export { default as AppointmentsPatient } from "./appointmentsPatient/index";
 export { default as Contents } from "./contents/index";
 export { default as EditProfile } from "./editProfile/index";
 export { default as Home } from "./home/index";
@@ -9,3 +9,4 @@ export { default as Payment } from "./payment/index";
 export { default as Profile } from "./profile/index";
 export { default as Register } from "./register/index";
 export { default as ScheduleNewAppointment } from "./scheduleNewAppointment/index";
+export { default as WriteContent } from "./writeContent/index";

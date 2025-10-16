@@ -1,4 +1,4 @@
-export const consultations = [
+export const appointmentsPatient = [
   {
     id: 1,
     datetime: "2024-07-01T10:00:00Z",

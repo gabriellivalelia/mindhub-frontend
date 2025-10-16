@@ -16,6 +16,12 @@ import {
   RightColumn,
   ConfirmButton,
   Avatar,
+  FlexRow,
+  RightAligned,
+  QrImage,
+  QrPlaceholder,
+  ButtonsRow,
+  PriceStrong,
 } from './styles';
 
 import Colors from '../../globalConfigs/globalStyles/colors';
@@ -77,48 +83,48 @@ const Payment = () => {
         <PaymentCard>
           <Title>Resumo da Consulta</Title>
           <InfoRow>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <FlexRow>
               <Avatar src={psychologist.picture} alt={psychologist.name} />
               <div>
                 <Label>{psychologist.name}</Label>
                 <Value>{psychologist.crp}</Value>
               </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+            </FlexRow>
+            <RightAligned>
+              <FlexRow gap="8px" justify="flex-end">
                 <Rating value={psychologist.rating} precision={0.1} readOnly size="small" sx={{ color: Colors.ORANGE }} />
                 <Value>{Number(psychologist.rating).toFixed(1)}</Value>
-              </div>
-              <div style={{ marginTop: 8, fontWeight: 700 }}>{formatBRL(price)}</div>
-            </div>
+              </FlexRow>
+              <PriceStrong>{formatBRL(price)}</PriceStrong>
+            </RightAligned>
           </InfoRow>
 
-          <div>
+          <Section>
             <Label>Horário</Label>
             <Value>{slot.day} {slot.time}</Value>
-          </div>
+          </Section>
 
-          <div style={{ marginTop: 12 }}>
+          <Section mt="12px">
             <Label>Especialidades</Label>
             <Value>{psychologist.specialties.join(', ')}</Value>
-          </div>
+          </Section>
 
-          <div style={{ marginTop: 12 }}>
+          <Section mt="12px">
             <Label>Abordagens</Label>
             <Value>{psychologist.approaches.join(', ')}</Value>
-          </div>
+          </Section>
         </PaymentCard>
 
         <RightColumn>
           <QrContainer>
-            <div style={{ fontWeight: 700 }}>Pagar via PIX</div>
-            {qrSrc ? <img src={qrSrc} alt="QR PIX" style={{ width: 200, height: 200 }} /> : <div style={{ width: 200, height: 200, background: 'rgba(115,115,115,0.06)' }} />}
+            <BoldText>Pagar via PIX</BoldText>
+            {qrSrc ? <QrImage src={qrSrc} alt="QR PIX" /> : <QrPlaceholder />}
             <SmallHint>Leia com seu app bancário ou copie o código abaixo.</SmallHint>
             <PixText readOnly value={pixString} />
-            <div style={{ display: 'flex', gap: 8 }}>
+            <ButtonsRow>
               <CopyButton onClick={() => navigate('/')}>Cancelar</CopyButton>
               <ConfirmButton onClick={() => navigate('/')}>Concluído</ConfirmButton>
-            </div>
+            </ButtonsRow>
           </QrContainer>
         </RightColumn>
       </Container>
