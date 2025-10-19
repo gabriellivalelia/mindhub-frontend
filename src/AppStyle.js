@@ -2,8 +2,8 @@ import styled from "styled-components";
 
 export const MainContainer = styled.div`
   background: none;
-  /* full viewport width and height */
-  width: 100vw;
+  /* full available width and height (avoid 100vw which can cause horizontal scroll with vertical scrollbar) */
+  width: 100%;
   min-height: 100dvh;
   min-height: 100vh;
   margin: 0;

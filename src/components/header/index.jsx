@@ -14,7 +14,6 @@ import {
 import LogoSrc from "../../assets/logo.png";
 import ProfileSrc from "../../assets/profile.jpeg";
 import AccountMenu from './accountMenu';
-import { Colors, FontSizes } from "../../globalConfigs";
 import { getToken } from "../../utils/auth";
 
 function Header() {
@@ -31,7 +30,7 @@ function Header() {
           <Link to="/">
             <NavBarHover>Home</NavBarHover>
           </Link>
-          <Link to="/appointmentsPatient">
+          <Link to="/appointments">
             <NavBarHover>Consultas</NavBarHover>
           </Link>
           <Link to="/contents">

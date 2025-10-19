@@ -22,6 +22,8 @@ import {
   QrPlaceholder,
   ButtonsRow,
   PriceStrong,
+  Section,
+  BoldText,
 } from './styles';
 
 import Colors from '../../globalConfigs/globalStyles/colors';
@@ -101,7 +103,17 @@ const Payment = () => {
 
           <Section>
             <Label>Horário</Label>
-            <Value>{slot.day} {slot.time}</Value>
+            <Value>{(() => {
+              const candidate = slot.datetime || (slot.day && slot.time ? `${slot.day} ${slot.time}` : null);
+              if (!candidate) return '';
+              try {
+                const d = new Date(candidate);
+                if (isNaN(d.getTime())) return `${slot.day || ''} ${slot.time || ''}`.trim();
+                return d.toLocaleString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+              } catch {
+                return `${slot.day || ''} ${slot.time || ''}`.trim();
+              }
+            })()}</Value>
           </Section>
 
           <Section mt="12px">

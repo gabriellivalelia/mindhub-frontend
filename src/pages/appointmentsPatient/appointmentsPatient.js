@@ -1,5 +1,17 @@
 export const appointmentsPatient = [
   {
+    id: 100,
+    datetime: "2025-10-20T15:30:00Z",
+    professional: "Dra. Laura Mendes",
+    professionalPicture: "https://randomuser.me/api/portraits/women/10.jpg",
+    status: "Aguardando pagamento",
+    price: 150,
+    crp: "CRP-05/12345",
+    rating: 4.8,
+    specialties: ["Ansiedade", "Depressão"],
+    approaches: ["TCC", "Psicodinâmica"],
+  },
+  {
     id: 1,
     datetime: "2024-07-01T10:00:00Z",
     professional: "Dr. João Silva",

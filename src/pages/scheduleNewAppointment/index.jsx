@@ -72,6 +72,7 @@ import Timer from "@mui/icons-material/Timer";
 import Groups from "@mui/icons-material/Groups";
 import Paid from "@mui/icons-material/Paid";
 import { psychologists } from "./psychologists";
+import { useLocation } from 'react-router-dom';
 import ScheduleComponent from "../../components/scheduleComponent";
 
 
@@ -266,6 +267,20 @@ function ScheduleNewAppointment() {
       return true;
     });
   }, [selectedCategories, genderFilter, approachesFilter, audienceFilter, dateFilter, timeFilter]);
+  const location = useLocation();
+  const preselectIdRaw = location?.state?.preselectId;
+  const preselectId = preselectIdRaw !== undefined && preselectIdRaw !== null ? Number(preselectIdRaw) : null;
+
+  const displayedPsychologists = React.useMemo(() => {
+    const list = filteredPsychologists || [];
+    if (!preselectId) return list;
+    const idx = list.findIndex(p => Number(p.id) === preselectId);
+    if (idx <= 0) return list;
+    const copy = [...list];
+    const [item] = copy.splice(idx, 1);
+    copy.unshift(item);
+    return copy;
+  }, [filteredPsychologists, preselectId]);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [dialogData, setDialogData] = React.useState(null);
 
@@ -408,7 +423,7 @@ function ScheduleNewAppointment() {
         <PsychologistsContainer>
           <FullWidth>
             <Stack alignItems="flex-start" spacing={2}>
-            {filteredPsychologists?.slice((page - 1) * pageSize, page * pageSize).map((psychologist) => (
+            {displayedPsychologists?.slice((page - 1) * pageSize, page * pageSize).map((psychologist) => (
               <PsychologistCard key={psychologist.id}>
                 <ProfileContainer>
                   <ProfessionalPictureContainer>
@@ -462,7 +477,7 @@ function ScheduleNewAppointment() {
 
             <RowBetween>
               <Pagination
-                count={Math.max(1, Math.ceil((filteredPsychologists?.length || 0) / pageSize))}
+                count={Math.max(1, Math.ceil((displayedPsychologists?.length || 0) / pageSize))}
                 page={page}
                 onChange={(e, value) => setPage(value)}
                 sx={{

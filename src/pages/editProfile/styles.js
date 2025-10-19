@@ -122,6 +122,17 @@ export const FullMessage = styled(Message)`
   grid-column: 1 / -1;
 `;
 
+export const DescriptionTextArea = styled.textarea`
+  min-height: 120px;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid ${Colors.GREY};
+  resize: vertical;
+  font-size: ${FontSizes.SMALL};
+  font-family: inherit;
+  width: 100%;
+`;
+
 export const AvatarRow = styled.div`
   display: flex;
   gap: 1rem;

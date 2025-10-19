@@ -1,9 +1,36 @@
 import { z } from "zod";
 
+// CPF validation helper: strips non-digits, checks length and verifies checksum digits
+function isValidCPF(cpf) {
+  if (!cpf) return false;
+  const onlyDigits = cpf.replace(/\D/g, "");
+  if (onlyDigits.length !== 11) return false;
+  // Reject known invalid CPFs with all equal digits
+  if (/^(\d)\1{10}$/.test(onlyDigits)) return false;
+
+  const calcCheckDigit = (digits) => {
+    let sum = 0;
+    for (let i = 0; i < digits.length; i++) {
+      sum += parseInt(digits.charAt(i), 10) * (digits.length + 1 - i);
+    }
+    const rem = (sum * 10) % 11;
+    return rem === 10 ? 0 : rem;
+  };
+
+  const base = onlyDigits.slice(0, 9);
+  const firstCheck = calcCheckDigit(base);
+  const secondCheck = calcCheckDigit(base + firstCheck);
+  return (
+    +onlyDigits.charAt(9) === firstCheck &&
+    +onlyDigits.charAt(10) === secondCheck
+  );
+}
+
 const passwordSchema = z
   .string()
   .nonempty("A senha é obrigatória!")
-  .min(6, "A senha precisa ter no mínimo 6 caracteres!");
+  .min(6, "A senha precisa ter no mínimo 6 caracteres!")
+  .max(20, "A senha pode ter no máximo 20 caracteres!");
 
 const baseUserSchema = {
   name: z
@@ -22,23 +49,49 @@ const baseUserSchema = {
         )
         .join(" ")
     ),
-  birthDate: z.string().nonempty("A data de nascimento é obrigatória!"),
-  cpf: z
-    .string()
-    .nonempty("O CPF é obrigatório!")
-    .regex(
-      /^\d{3}\.\d{3}\.\d{3}-\d{2}$/,
-      "Formato de CPF inválido. Use XXX.XXX.XXX-XX"
-    ),
-  phone: z
-    .string()
-    .nonempty("O telefone é obrigatório!")
-    .regex(
-      /^\(\d{2}\) \d{5}-\d{4}$/,
-      "Formato de telefone inválido. Use (XX) XXXXX-XXXX"
-    ),
-  address: z.string().nonempty("O endereço é obrigatório!"),
-  state: z.string().nonempty("O estado é obrigatório!"),
+  birthDate: z.preprocess(
+    (v) => (v == null ? "" : v),
+    z.string().nonempty("A data de nascimento é obrigatória!")
+  ),
+  cpf: z.preprocess(
+    (v) => (v == null ? "" : v),
+    z
+      .string()
+      .nonempty("O CPF é obrigatório!")
+      .regex(
+        /^\d{3}\.\d{3}\.\d{3}-\d{2}$/,
+        "Formato de CPF inválido. Use XXX.XXX.XXX-XX"
+      )
+      .refine((val) => isValidCPF(val), "CPF inválido!")
+  ),
+  phone: z.preprocess(
+    (v) => (v == null ? "" : v),
+    z
+      .string()
+      .nonempty("O telefone é obrigatório!")
+      .regex(
+        /^\(\d{2}\) \d{5}-\d{4}$/,
+        "Formato de telefone inválido. Use (XX) XXXXX-XXXX"
+      )
+  ),
+  gender: z.preprocess((v) => {
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    if (typeof v === "object") return v.value ?? v.label ?? "";
+    return "";
+  }, z.string().nonempty("O gênero é obrigatório!")),
+  state: z.preprocess((v) => {
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    if (typeof v === "object") return v.value ?? v.label ?? "";
+    return "";
+  }, z.string().nonempty("O estado é obrigatório!")),
+  city: z.preprocess((v) => {
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    if (typeof v === "object") return v.value ?? v.label ?? "";
+    return "";
+  }, z.string().nonempty("A cidade é obrigatória!")),
   email: z
     .string()
     .nonempty("O email é obrigatório!")
@@ -63,11 +116,36 @@ export const CreatePacientFormSchema = z
 export const CreatePsychologistFormSchema = z
   .object({
     ...baseUserSchema,
-    crp: z
-      .string()
-      .nonempty("O CRP é obrigatório!")
-      .regex(/^\d{2}\/\d{4,6}$/, "Formato de CRP inválido. Use XX/XXXXXX"),
-    approach: z.string().nonempty("A abordagem é obrigatória!"),
+    crp: z.preprocess(
+      (v) => (v == null ? "" : v),
+      z
+        .string()
+        .nonempty("O CRP é obrigatório!")
+        .regex(/^\d{2}\/\d{4,6}$/, "Formato de CRP inválido. Use 00/000000")
+    ),
+    approaches: z.preprocess(
+      (v) => {
+        if (v == null) return [];
+        if (Array.isArray(v))
+          return v.map((item) =>
+            typeof item === "object" ? (item.value ?? item.label ?? "") : item
+          );
+        return [];
+      },
+      z.array(z.string()).min(1, "Selecione ao menos uma abordagem")
+    ),
+    specialties: z.preprocess(
+      (v) => {
+        if (v == null) return [];
+        if (Array.isArray(v))
+          return v.map((item) =>
+            typeof item === "object" ? (item.value ?? item.label ?? "") : item
+          );
+        return [];
+      },
+      z.array(z.string()).min(1, "Selecione ao menos uma especialidade")
+    ),
+    description: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmedPassword, {
     path: ["confirmedPassword"],

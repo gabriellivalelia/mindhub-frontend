@@ -7,13 +7,15 @@ import {
   RouterProvider,
 } from 'react-router-dom';
 import {
+  AddAvailabilities, 
   AppointmentsPatient,
+  AppointmentsPsychologist,
   Contents,
   EditProfile,
   Home,
   Login,
+  Unauthorized,
   NotFound,
-  Profile,
   PreLogin,
   Register,
   WriteContent,
@@ -26,10 +28,11 @@ import {
 } from './components';
 
 import App from './App';
-import { getToken } from './utils/auth';
+import { getToken, getUserType } from './utils/auth';
 import { AppointmentItem } from './pages/home/styles';
+import ProtectedRoute from './utils/protectedRoute';
+import UnauthRoute from './utils/unauthRoute';
 
-//Para as rotas que precisam de Footer e Header
 function HasFooterAndHeaderRoutes() {
   return (
     <>
@@ -46,18 +49,24 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path="/" element={<App />}>
       <Route element={<HasFooterAndHeaderRoutes />}>
-        <Route index element={auth ? <Home /> : <PreLogin />} />
-        <Route path="appointmentsPatient" element={<AppointmentsPatient />} />
-        <Route path="contents" element={<Contents />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="register" element={<Register />} />
-  <Route path="write-content" element={<WriteContent />} />
-        <Route path="edit-profile" element={<EditProfile />} />
-        <Route path="schedule-new-appointment" element={<ScheduleNewAppointment />} />
-        <Route path="payment" element={<Payment />} />
+          <Route index element={auth ? <Home /> : <Unauthorized />} />
+          <Route
+            path="appointments"
+            element={<ProtectedRoute>{getUserType() === 'psychologist' ? <AppointmentsPsychologist /> : <AppointmentsPatient />}</ProtectedRoute>}
+          />
+          <Route
+            path="add-availabilities"
+            element={<ProtectedRoute>{getUserType() === 'psychologist' ? <AddAvailabilities /> : <Home />}</ProtectedRoute>}
+          />
+          <Route path="contents" element={<ProtectedRoute><Contents /></ProtectedRoute>} />
+          <Route path="write-content" element={<ProtectedRoute><WriteContent /></ProtectedRoute>} />
+          <Route path="edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+          <Route path="schedule-new-appointment" element={<ProtectedRoute><ScheduleNewAppointment /></ProtectedRoute>} />
+          <Route path="payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+          <Route path="unauthorized" element={<Unauthorized />} />
       </Route>
-
-      <Route path="login" element={<Login />} />
+      <Route path="login" element={<UnauthRoute><Login /></UnauthRoute>} />
+      <Route path="register" element={<UnauthRoute><Register /></UnauthRoute>} />
       <Route path="*" element={<NotFound />} />
     </Route>
   )

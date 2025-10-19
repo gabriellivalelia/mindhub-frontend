@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import Select from 'react-select';
+import Colors from '../../globalConfigs/globalStyles/colors';
 
 import {
   PageContainer,
@@ -13,11 +14,13 @@ import {
   InputContainer,
   Label,
   Message,
+  FullMessage,
   StyledMaskInput,
   SubmitButton,
   AvatarRow,
   AvatarPreview,
   TextButton,
+  DescriptionTextArea,
 } from "./styles";
 
 import { SubHeader } from "../../components";
@@ -38,6 +41,7 @@ const mockUser = {
 };
 
 function EditProfile() {
+  const [userType, setUserType] = useState('patient');
   const { register, handleSubmit, setValue, formState: { errors } } = useForm();
   const [avatar, setAvatar] = useState(null);
 
@@ -51,6 +55,8 @@ function EditProfile() {
     setValue('gender', mockUser.gender);
     setValue('state', mockUser.state);
     setValue('city', mockUser.city);
+    // if mock user is psicologist, set userType accordingly (default mock is patient)
+    // setValue('userType', 'patient');
     // run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -67,12 +73,60 @@ function EditProfile() {
     setAvatar(url);
   };
 
+  const customStyles = {
+    control: (provided) => ({
+      ...provided,
+      border: "none",
+      boxShadow: "none",
+      minHeight: "28px",
+      height: "28px",
+    }),
+    valueContainer: (provided) => ({
+      ...provided,
+      height: "28px",
+      padding: "0.15rem 0",
+    }),
+    indicatorsContainer: (provided) => ({
+      ...provided,
+      height: "28px",
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isSelected ? Colors.ORANGE : state.isFocused ? Colors.LIGHT_ORANGE : provided.backgroundColor,
+      color: state.isSelected ? Colors.WHITE : provided.color,
+    }),
+    multiValue: (provided) => ({
+      ...provided,
+      backgroundColor: Colors.ORANGE,
+      color: Colors.WHITE,
+    }),
+    multiValueLabel: (provided) => ({
+      ...provided,
+      color: Colors.WHITE,
+    }),
+    multiValueRemove: (provided) => ({
+      ...provided,
+      color: Colors.WHITE,
+      ':hover': {
+        backgroundColor: Colors.LIGHT_ORANGE,
+        color: Colors.WHITE,
+      }
+    }),
+  };
+
   return (
     <PageContainer>
       <SubHeader text="Editar Perfil" />
       <Container>
         <FormContainer>
-          <Form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <div style={{ width: '100%' }}>
+            {/* user type toggle (patient/psychologist) */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <button type="button" onClick={() => setUserType('patient')} style={{ padding: '8px 12px', background: userType === 'patient' ? '#ddd' : 'transparent', border: 'none', borderRadius: 6 }}>Paciente</button>
+              <button type="button" onClick={() => setUserType('psychologist')} style={{ padding: '8px 12px', background: userType === 'psychologist' ? '#ddd' : 'transparent', border: 'none', borderRadius: 6 }}>Psicólogo</button>
+            </div>
+
+            <Form onSubmit={handleSubmit(onSubmit)} noValidate>
             <AvatarRow>
               <AvatarPreview src={avatar || '/src/assets/profile.jpeg'} alt="avatar" />
               <div>
@@ -98,7 +152,8 @@ function EditProfile() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="cpf">CPF</Label>
-                <StyledMaskInput id="cpf" mask="000.000.000-00" {...register('cpf')} />
+            DescriptionTextArea,
+            FullMessage,
               </InputAndLabelBox>
             </InputContainer>
 
@@ -119,7 +174,7 @@ function EditProfile() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="gender">GÊNERO</Label>
-                <Select id="gender" {...register('gender')} options={genderOptions} />
+                <Select id="gender" {...register('gender')} options={genderOptions} styles={customStyles} />
               </InputAndLabelBox>
             </InputContainer>
 
@@ -133,14 +188,47 @@ function EditProfile() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="city">CIDADE</Label>
-                <Select id="city" {...register('city')} options={cityOptions} />
+                <Select id="city" {...register('city')} options={cityOptions} styles={customStyles} />
               </InputAndLabelBox>
             </InputContainer>
+
+            {userType === 'psychologist' && (
+              <>
+                <InputContainer>
+                  <InputAndLabelBox>
+                    <Label htmlFor="crp">CRP</Label>
+                    <StyledMaskInput id="crp" mask="00/000000" {...register('crp')} />
+                  </InputAndLabelBox>
+                </InputContainer>
+
+                <InputContainer>
+                  <InputAndLabelBox>
+                    <Label htmlFor="approaches">ABORDAGENS</Label>
+                    <Select id="approaches" {...register('approaches')} options={[]} isMulti styles={customStyles} />
+                  </InputAndLabelBox>
+                </InputContainer>
+
+                <FullWidthInputContainer>
+                  <InputAndLabelBox>
+                    <Label htmlFor="specialties">ESPECIALIDADES</Label>
+                    <Select id="specialties" {...register('specialties')} options={[]} isMulti styles={customStyles} />
+                  </InputAndLabelBox>
+                </FullWidthInputContainer>
+
+                <FullWidthInputContainer>
+                  <InputAndLabelBox>
+                    <Label htmlFor="description">DESCRIÇÃO</Label>
+                    <DescriptionTextArea id="description" {...register('description')} />
+                  </InputAndLabelBox>
+                </FullWidthInputContainer>
+              </>
+            )}
 
             <FullMessage>{errors?.form}</FullMessage>
 
             <SubmitButton type="submit" value="Salvar alterações" />
           </Form>
+          </div>
         </FormContainer>
       </Container>
     </PageContainer>

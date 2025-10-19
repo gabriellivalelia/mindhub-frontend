@@ -34,13 +34,15 @@ export const Card = styled.div`
 export const EditorRow = styled.div`
   display: flex;
   gap: 1rem;
+  align-items: flex-start;
+  /* On wider screens keep side-by-side, on tablet and below stack */
   @media (max-width: ${BreakPoints.TABLET}) {
     flex-direction: column;
   }
 `;
 
 export const EditorArea = styled.div`
-  flex: 1;
+  flex: 1 1 50%;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -64,8 +66,8 @@ export const TextArea = styled.textarea`
 `;
 
 export const PreviewArea = styled.div`
-  width: 420px;
-  max-width: 45%;
+  flex: 0 0 50%;
+  max-width: 50%;
   background: ${Colors.LIGHT_ORANGE};
   border-radius: 8px;
   padding: 0.75rem;

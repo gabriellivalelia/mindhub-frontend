@@ -46,6 +46,14 @@ export const Actions = styled.div`
   button {
     font-size: ${FontSizes.SMALL};
   }
+
+  @media (max-width: ${BreakPoints.MOBILE}) {
+    gap: 0.4rem;
+    button {
+      font-size: ${FontSizes.SMALL};
+      padding: 8px 10px;
+    }
+  }
 `;
 
 export const TitleStrong = styled.div`
@@ -58,6 +66,18 @@ export const MainCard = styled.div`
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  min-height: 60vh;
+  /* allow horizontal scrolling for the schedule on small screens */
+  @media (max-width: ${BreakPoints.TABLET}) {
+    overflow-x: auto;
+    padding: 0.8rem;
+  }
+  @media (max-width: ${BreakPoints.MOBILE}) {
+    overflow-x: auto;
+    padding: 0.6rem;
+  }
 `;
 
 export default {};

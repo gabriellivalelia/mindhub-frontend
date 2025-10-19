@@ -35,7 +35,7 @@ export const MessageRow = styled.div`
   color: ${Colors.GREY};
 `;
 
-export const BackButton = styled.button`
+export const ActionButton = styled.button`
   background: ${Colors.ORANGE};
   color: ${Colors.WHITE};
   border: none;

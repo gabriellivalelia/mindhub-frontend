@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from 'react';
 import {
   Container,
   ScheduleNewAppointmentButton,
@@ -16,17 +16,24 @@ import {
   ConsultationStatus,
   MoreInfoButton,
   SearchContainer,
-  SearchIconWrapper
+  SearchIconWrapper,
+  
 
 } from "./styles";
 import { FilterTitle, FullWidth, RowBetween } from './styles';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import IconButton from '@mui/material/IconButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import CancelIcon from '@mui/icons-material/Cancel';
+
 
 import { useNavigate } from "react-router-dom";
 
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
 import Stack from '@mui/material/Stack';
-import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
@@ -38,21 +45,22 @@ import Colors from "../../globalConfigs/globalStyles/colors";
 import { FontSizes } from "../../globalConfigs";
 import { appointmentsPatient } from "./appointmentsPatient";
 import Schedule from "@mui/icons-material/Schedule";
+import ManageHistory from "@mui/icons-material/ManageHistory";
+import PriceCheck from "@mui/icons-material/PriceCheck";
 import Brightness1 from "@mui/icons-material/Brightness1";
 import FilterAlt from "@mui/icons-material/FilterAlt";
 import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import Search from "@mui/icons-material/Search";
 
 
-function Consultations() {
+function AppointmentsPatient() {
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [pageSize, setPageSize] = React.useState(5);
   const [page, setPage] = React.useState(1);
-  const [statusFilter, setStatusFilter] = React.useState('Todos');
   const [dateFilter, setDateFilter] = React.useState('');
   const [searchTerm, setSearchTerm] = React.useState('');
 
-  const getStatusColor = (status) => {
+      const getStatusColor = (status) => {
     switch (status) {
       case 'Agendada':
         return Colors.ORANGE;
@@ -67,6 +75,18 @@ function Consultations() {
     }
   };
 
+  const [anchorEl, setAnchorEl] = useState(null);
+    const [selectedConsultation, setSelectedConsultation] = useState(null);
+    const menuOpen = Boolean(anchorEl);
+    const handleMenuOpen = (e, consultation) => {
+      setAnchorEl(e.currentTarget);
+      setSelectedConsultation(consultation);
+    };
+    const handleMenuClose = () => {
+      setAnchorEl(null);
+      setSelectedConsultation(null);
+    };
+
   const navigate = useNavigate();
   
   const applyFilters = () => {
@@ -75,7 +95,6 @@ function Consultations() {
   };
 
   const clearFilters = () => {
-    setStatusFilter('Todos');
     setDateFilter('');
     setSearchTerm('');
     setPage(1);
@@ -84,19 +103,14 @@ function Consultations() {
   const filteredAppointments = React.useMemo(() => {
     const term = (searchTerm || '').trim().toLowerCase();
     return appointmentsPatient.filter((a) => {
-      // status filter
-      if (statusFilter && statusFilter !== 'Todos' && a.status !== statusFilter) return false;
-
-      // date filter (compare yyyy-mm-dd)
       const apptDate = new Date(a.datetime).toISOString().slice(0, 10);
       if (dateFilter && apptDate !== dateFilter) return false;
 
-      // search by professional name
       if (term && !a.professional.toLowerCase().includes(term)) return false;
 
       return true;
     });
-  }, [statusFilter, dateFilter, searchTerm]);
+  }, [dateFilter, searchTerm]);
   
 
   return (
@@ -122,36 +136,6 @@ function Consultations() {
           <Box sx={{ width: 320, padding: 2 }} role="presentation">
             <FilterTitle>Filtros</FilterTitle>
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: Colors.ORANGE }, '& .MuiInputLabel-root.Mui-focused': { color: Colors.ORANGE } }}>
-                <InputLabel id="status-filter-label">Status</InputLabel>
-                <Select
-                  labelId="status-filter-label"
-                  id="status-filter"
-                  value={statusFilter}
-                  label="Status"
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  sx={{ '& .MuiSvgIcon-root': { color: Colors.ORANGE } }}
-                  MenuProps={{
-                    PaperProps: {
-                      sx: {
-                        '& .MuiMenuItem-root.Mui-selected': {
-                          backgroundColor: Colors.ORANGE,
-                          color: Colors.WHITE,
-                        },
-                        '& .MuiMenuItem-root.Mui-selected:hover': {
-                          backgroundColor: Colors.ORANGE,
-                        },
-                      }
-                    }
-                  }}
-                >
-                  <MenuItem value="Todos">Todos</MenuItem>
-                  <MenuItem value="Agendada">Agendada</MenuItem>
-                  <MenuItem value="Confirmada">Confirmada</MenuItem>
-                  <MenuItem value="Cancelada">Cancelada</MenuItem>
-                  <MenuItem value="Realizada">Realizada</MenuItem>
-                </Select>
-              </FormControl>
 
               <TextField
                 label="Data"
@@ -188,7 +172,9 @@ function Consultations() {
                   <ConsultationDateTime><Schedule sx={{ fontSize: FontSizes.MEDIUM }} /> {new Date(consultation.datetime).toLocaleString()}</ConsultationDateTime>
                 </ConsultationInfo>
                 <ConsultationStatus status={consultation.status}><Brightness1 sx={{ fontSize: FontSizes.SMALLEST, color: getStatusColor(consultation.status) }} /> {consultation.status}</ConsultationStatus>
-                <MoreInfoButton><MoreHoriz /></MoreInfoButton>
+                <IconButton size="small" onClick={(e) => handleMenuOpen(e, consultation)} sx={{ color: Colors.GREY, p: '6px' }} aria-controls={menuOpen ? 'next-appointment-menu' : undefined} aria-haspopup="true" aria-expanded={menuOpen ? 'true' : undefined}>
+                  <MoreHoriz />
+                </IconButton> 
               </ConsultationCard>
             ))}
 
@@ -231,13 +217,42 @@ function Consultations() {
                 >
                   <MenuItem value={5}>5</MenuItem>
                   <MenuItem value={10}>10</MenuItem>
-                  <MenuItem value={25}>50</MenuItem>
+                  <MenuItem value={25}>25</MenuItem>
                 </Select>
               </FormControl>
             </RowBetween>
             </Stack>
           </FullWidth>
         </ConsultationsContainer>
+        <Menu
+          id="next-appointment-menu"
+          anchorEl={anchorEl}
+          open={menuOpen}
+          onClose={handleMenuClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          {selectedConsultation?.status === 'Aguardando pagamento' && (
+            <MenuItem onClick={() => { handleMenuClose(); navigate('/payment', { state: { psychologist: { name: selectedConsultation.professional, picture: selectedConsultation.professionalPicture, crp: selectedConsultation.crp || '', rating: selectedConsultation.rating || 4.5, specialties: selectedConsultation.specialties || [], approaches: selectedConsultation.approaches || [] }, slot: { datetime: selectedConsultation.datetime }, price: selectedConsultation.price || 150 } }); }}>
+              <ListItemIcon>
+                <PriceCheck sx={{ color: Colors.LIGHT_ORANGE }} fontSize="small" />
+              </ListItemIcon>
+              Efetuar pagamento
+            </MenuItem>
+          )}
+          <MenuItem onClick={() => { handleMenuClose(); console.log('Reschedule', selectedConsultation); }}>
+            <ListItemIcon>
+              <ManageHistory sx={{ color: Colors.LIGHT_ORANGE }} fontSize="small" />
+            </ListItemIcon>
+            Reagendar consulta
+          </MenuItem>
+          <MenuItem onClick={() => { handleMenuClose(); console.log('Cancel', selectedConsultation?.id); }}>
+            <ListItemIcon>
+              <CancelIcon sx={{ color: Colors.GREY }} fontSize="small" />
+            </ListItemIcon>
+            Cancelar consulta
+          </MenuItem>
+        </Menu>
       <ScheduleNewAppointmentButton onClick={() => navigate("/schedule-new-appointment")}>Agendar consulta</ScheduleNewAppointmentButton>
       </Container>
 
@@ -245,5 +260,5 @@ function Consultations() {
   );
 }
 
-export default Consultations;
+export default AppointmentsPatient;
 

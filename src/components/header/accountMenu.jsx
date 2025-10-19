@@ -7,17 +7,21 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
-import PersonAdd from '@mui/icons-material/PersonAdd';
-import Settings from '@mui/icons-material/Settings';
+import Home from '@mui/icons-material/Home';
+import CalendarMonth from '@mui/icons-material/CalendarMonth';
+import EventAvailable from '@mui/icons-material/EventAvailable';
+import Article from '@mui/icons-material/Article';
+import NoteAdd from '@mui/icons-material/NoteAdd';
 import Logout from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
 import Colors from '../../globalConfigs/globalStyles/colors';
 import FontSizes from '../../globalConfigs/globalStyles/fontSizes';
-import { removeUserType } from '../../utils/auth';
+import { removeUserType, removeToken, getUserType } from '../../utils/auth';
 
 export default function AccountMenu({ avatarSrc }) {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
+  const userType = getUserType();
   const navigate = useNavigate();
 
   const handleClick = (event) => {
@@ -29,8 +33,8 @@ export default function AccountMenu({ avatarSrc }) {
 
   const handleLogout = () => {
     handleClose();
-    // If you have an auth helper, call logout here. For now just navigate to /login
     removeUserType();
+    removeToken();
     navigate('/login');
   };
 
@@ -93,6 +97,40 @@ export default function AccountMenu({ avatarSrc }) {
       >
         <MenuItem onClick={() => { handleClose(); navigate('/edit-profile'); }}>
           <Avatar src={avatarSrc} /> Editar perfil
+        </MenuItem>
+        {userType === 'psychologist' && (
+        <>
+        <MenuItem onClick={() => { handleClose(); navigate('/add-availabilities'); }}>
+          <ListItemIcon>
+            <EventAvailable fontSize="small" />
+          </ListItemIcon>
+          Gerenciar disponibilidades
+        </MenuItem>
+        <MenuItem onClick={() => { handleClose(); navigate('/write-content'); }}>
+          <ListItemIcon>
+            <NoteAdd fontSize="small" />
+          </ListItemIcon>
+          Escrever conteúdo
+        </MenuItem>
+        </>
+      )}
+        <MenuItem onClick={() => { handleClose(); navigate('/'); }}>
+          <ListItemIcon>
+            <Home fontSize="small" />
+          </ListItemIcon>
+          Home
+        </MenuItem>
+        <MenuItem onClick={() => { handleClose(); navigate('/appointments'); }}>
+          <ListItemIcon>
+            <CalendarMonth fontSize="small" />
+          </ListItemIcon>
+          Consultas
+        </MenuItem>
+        <MenuItem onClick={() => { handleClose(); navigate('/contents'); }}>
+          <ListItemIcon>
+            <Article fontSize="small" />
+          </ListItemIcon>
+          Conteúdos
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout}>

@@ -131,9 +131,9 @@ export const ConsultationDateTime = styled.div`
   color: ${Colors.GREY};
   display: flex;
   flex-direction: row;
+  align-items: center;
   text-align: center;
   gap: 0.3rem;
-  padding: 0;
 `;
 
 export const ConsultationStatus = styled.div`
@@ -147,6 +147,7 @@ export const ConsultationStatus = styled.div`
   padding: 0.4rem 0.8rem;
   border-radius: 12px;
   font-size: ${FontSizes.SMALL};
+  width: 30%;
   @media (max-width: ${BreakPoints.TABLET}) {
     align-self: flex-start;
     margin-top: 0.5rem;

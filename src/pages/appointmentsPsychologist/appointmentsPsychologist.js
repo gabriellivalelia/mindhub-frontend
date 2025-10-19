@@ -1,0 +1,58 @@
+export const appointmentsPsychologist = [
+  {
+    id: 101,
+    datetime: "2024-07-01T09:00:00Z",
+    patient: "Lucas Pereira",
+    patientPicture: "https://randomuser.me/api/portraits/men/21.jpg",
+    status: "Agendada",
+  },
+  {
+    id: 102,
+    datetime: "2024-07-02T11:30:00Z",
+    patient: "Mariana Costa",
+    patientPicture: "https://randomuser.me/api/portraits/women/22.jpg",
+    status: "Confirmada",
+  },
+  {
+    id: 103,
+    datetime: "2024-07-03T14:00:00Z",
+    patient: "Rafael Lima",
+    patientPicture: "https://randomuser.me/api/portraits/men/23.jpg",
+    status: "Cancelada",
+  },
+  {
+    id: 104,
+    datetime: "2024-07-04T15:15:00Z",
+    patient: "Alice Moreira",
+    patientPicture: "https://randomuser.me/api/portraits/women/24.jpg",
+    status: "Realizada",
+  },
+  {
+    id: 105,
+    datetime: "2024-07-05T10:45:00Z",
+    patient: "Pedro Gomes",
+    patientPicture: "https://randomuser.me/api/portraits/men/25.jpg",
+    status: "Agendada",
+  },
+  {
+    id: 106,
+    datetime: "2024-07-06T13:00:00Z",
+    patient: "Beatriz Nunes",
+    patientPicture: "https://randomuser.me/api/portraits/women/26.jpg",
+    status: "Confirmada",
+  },
+  {
+    id: 107,
+    datetime: "2024-07-07T16:30:00Z",
+    patient: "Felipe Rocha",
+    patientPicture: "https://randomuser.me/api/portraits/men/27.jpg",
+    status: "Agendada",
+  },
+  {
+    id: 108,
+    datetime: "2024-07-08T12:15:00Z",
+    patient: "Carla Mendes",
+    patientPicture: "https://randomuser.me/api/portraits/women/28.jpg",
+    status: "Realizada",
+  },
+];

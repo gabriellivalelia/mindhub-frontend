@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useEffect } from 'react';
 import {
 	ScheduleWrapper,
 	ScheduleGrid,
@@ -6,15 +7,16 @@ import {
 	SlotsRowContainer,
 	SlotsRow,
 	ArrowButton,
+	TopControls,
 	DayColumn,
 	DayHeader,
 	DayName,
 	DayNumber,
 	TimeSlot,
-	ScrollBar,
+	ScrollBar
+
 } from './styles';
 
-// Helper: generate hourly slots (05:00 - 23:00) for a date
 const generateDaySlots = (date) => {
 	const slots = [];
 	for (let hour = 5; hour <= 23; hour++) {
@@ -31,7 +33,7 @@ const groupSlotsByDay = (slots) => {
 
 	slots.forEach((slot) => {
 		const date = new Date(slot.date);
-		const dayKey = date.toISOString().split('T')[0];
+		const dayKey = date.toLocaleDateString('en-CA'); // yields YYYY-MM-DD in local timezone
 		const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 		if (!grouped.has(dayKey)) grouped.set(dayKey, []);
@@ -42,10 +44,21 @@ const groupSlotsByDay = (slots) => {
 	return grouped;
 };
 
-const AddAvailabilitiesComponent = ({ daysVisible = 5, onSelectionChange }) => {
+
+const AddAvailabilitiesComponent = ({ daysVisible = 5, onSelectionChange, initialAvailabilities = [], appointments = [] }) => {
 	const [displayDate, setDisplayDate] = useState(new Date());
-	// store selected slots as a Set of ISO strings for easy toggle
-	const [selectedSet, setSelectedSet] = useState(new Set());
+	const [selectedSet, setSelectedSet] = useState(() => {
+		const s = new Set();
+		(initialAvailabilities || []).forEach((iso) => s.add(iso));
+		(appointments || []).forEach((iso) => s.add(iso));
+		return s;
+	});
+
+	// Drag selection state
+	const [isMouseDown, setIsMouseDown] = useState(false);
+	const [dragModeSelect, setDragModeSelect] = useState(true); // true = selecting, false = deselecting
+
+	const appointmentsSet = useMemo(() => new Set(appointments || []), [appointments]);
 
 	const visibleDays = useMemo(() => {
 		return Array.from({ length: daysVisible }).map((_, i) => {
@@ -56,7 +69,6 @@ const AddAvailabilitiesComponent = ({ daysVisible = 5, onSelectionChange }) => {
 		});
 	}, [displayDate, daysVisible]);
 
-	// generate allSlots for visibleDays
 	const allSlots = useMemo(() => {
 		const arr = [];
 		visibleDays.forEach((d) => {
@@ -68,6 +80,12 @@ const AddAvailabilitiesComponent = ({ daysVisible = 5, onSelectionChange }) => {
 
 	const slotsByDay = useMemo(() => groupSlotsByDay(allSlots), [allSlots]);
 
+	useEffect(() => {
+		const onUp = () => setIsMouseDown(false);
+		window.addEventListener('mouseup', onUp);
+		return () => window.removeEventListener('mouseup', onUp);
+	}, []);
+
 	const navigateDays = (amount) => {
 		setDisplayDate((current) => {
 			const newDate = new Date(current);
@@ -76,32 +94,18 @@ const AddAvailabilitiesComponent = ({ daysVisible = 5, onSelectionChange }) => {
 		});
 	};
 
-		const toggleSlot = (iso) => {
-		setSelectedSet((prev) => {
-			const next = new Set(prev);
-			if (next.has(iso)) next.delete(iso);
-			else next.add(iso);
 
-			// notify parent with an array of selected slot objects
-			if (typeof onSelectionChange === 'function') {
-				const selectedArray = Array.from(next).map((sIso) => {
-					const d = new Date(sIso);
-					return { iso: sIso, day: d.toISOString().split('T')[0], time: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false }) };
-				});
-				onSelectionChange(selectedArray);
-			}
-
-			return next;
-		});
-	};
 
 	return (
-		<ScheduleWrapper>
-			<ArrowButton onClick={() => navigateDays(-daysVisible)}>&lt;</ArrowButton>
-			<ScheduleGrid>
+			<ScheduleWrapper>
+				<TopControls>
+					<ArrowButton onClick={() => navigateDays(-daysVisible)}>&lt;</ArrowButton>
+					<ArrowButton onClick={() => navigateDays(daysVisible)}>&gt;</ArrowButton>
+				</TopControls>
+				<ScheduleGrid>
 				<HeaderRow>
 					{visibleDays.map((date) => (
-						<DayHeader key={date.toISOString()}>
+						<DayHeader key={date.toLocaleDateString('en-CA')}>
 							<DayName>{date.toLocaleString('pt-BR', { weekday: 'short' }).replace('.', '')}</DayName>
 							<DayNumber>{date.toLocaleString('pt-BR', { day: 'numeric', month: 'short' }).replace(' de ', ' ')}</DayNumber>
 						</DayHeader>
@@ -111,7 +115,7 @@ const AddAvailabilitiesComponent = ({ daysVisible = 5, onSelectionChange }) => {
 				<SlotsRowContainer>
 					<SlotsRow>
 						{visibleDays.map((date) => {
-							const dayKey = date.toISOString().split('T')[0];
+							const dayKey = date.toLocaleDateString('en-CA');
 							const daySlots = slotsByDay.get(dayKey) || [];
 
 							return (
@@ -123,9 +127,58 @@ const AddAvailabilitiesComponent = ({ daysVisible = 5, onSelectionChange }) => {
 												key={slotInfo.time}
 												available={slotInfo.available}
 												selected={isSelected}
-												onClick={() => {
+												readonly={appointmentsSet.has(slotInfo.iso)}
+												onMouseDown={() => {
 													if (!slotInfo.available) return;
-													toggleSlot(slotInfo.iso, dayKey, slotInfo.time);
+													const currentlySelected = selectedSet.has(slotInfo.iso);
+													// start drag mode: if currently selected -> we're deselecting, else selecting
+													setDragModeSelect(!currentlySelected);
+													setIsMouseDown(true);
+													// apply the action for this first slot
+													setSelectedSet((prev) => {
+														const next = new Set(prev);
+														if (next.has(slotInfo.iso)) next.delete(slotInfo.iso);
+														else next.add(slotInfo.iso);
+														if (typeof onSelectionChange === 'function') {
+															const selectedArray = Array.from(next).map((sIso) => {
+																const d = new Date(sIso);
+																return {
+																	iso: sIso,
+																	day: d.toLocaleDateString('en-CA'),
+																	time: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false }),
+																	readonly: appointmentsSet.has(sIso),
+																};
+															});
+															onSelectionChange(selectedArray);
+														}
+														return next;
+													});
+												}}
+												onMouseEnter={() => {
+													if (!isMouseDown) return;
+													if (!slotInfo.available) return;
+													setSelectedSet((prev) => {
+														const next = new Set(prev);
+														const has = next.has(slotInfo.iso);
+														if (dragModeSelect && !has) next.add(slotInfo.iso);
+														if (!dragModeSelect && has) next.delete(slotInfo.iso);
+														if (typeof onSelectionChange === 'function') {
+															const selectedArray = Array.from(next).map((sIso) => {
+																const d = new Date(sIso);
+																return {
+																	iso: sIso,
+																	day: d.toLocaleDateString('en-CA'),
+																	time: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false }),
+																	readonly: appointmentsSet.has(sIso),
+																};
+															});
+															onSelectionChange(selectedArray);
+														}
+														return next;
+													});
+												}}
+												onMouseUp={() => {
+													setIsMouseDown(false);
 												}}
 											>
 												{slotInfo.time}
@@ -139,7 +192,6 @@ const AddAvailabilitiesComponent = ({ daysVisible = 5, onSelectionChange }) => {
 					<ScrollBar />
 				</SlotsRowContainer>
 			</ScheduleGrid>
-			<ArrowButton onClick={() => navigateDays(daysVisible)}>&gt;</ArrowButton>
 		</ScheduleWrapper>
 	);
 };

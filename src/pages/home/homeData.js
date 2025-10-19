@@ -1,57 +1,72 @@
 // Mock data for the Home page (next appointment + upcoming list)
+
+// For testing the "Reagendar" flow, expose only a past appointment and no next appointment
 export const homeUpcoming = [
+  // past appointment (patient's last) - professionalId 3 maps to Dra. Camila Ferreira in psychologists data
   {
-    id: 101,
-    datetime: "2025-10-15T10:00:00Z",
-    professional: "Dra. Marina Rocha",
+    id: 201,
+    datetime: "2025-10-01T10:00:00Z",
+    professionalId: 3,
+    professional: "Dra. Camila Ferreira",
+    professionalPicture: "https://randomuser.me/api/portraits/women/12.jpg",
+    status: "Realizada",
+    location: "Consulta online",
+    price: "R$ 160,00",
+    duration: "50 min",
+  },
+  // another past appointment (to test 'mark as completed' when not yet completed)
+  {
+    id: 202,
+    datetime: "2025-10-10T09:00:00Z",
+    professionalId: 2,
+    professional: "Dr. Marcos Silva",
+    professionalPicture: "https://randomuser.me/api/portraits/men/11.jpg",
+    status: "Confirmada",
+    location: "Clínica Centro",
+    price: "R$ 140,00",
+    duration: "50 min",
+  },
+  // appointment scheduled for today to test psychologist's "Consultas de Hoje"
+  {
+    id: 204,
+    datetime: "2025-10-17T15:30:00Z",
+    professionalId: 1,
+    professional: "Dra. Laura Mendes",
+    professionalPicture: "https://randomuser.me/api/portraits/women/10.jpg",
+    // patient-specific fields (shown to psychologists)
+    patient: "João Carvalho",
+    patientPicture: "https://randomuser.me/api/portraits/men/45.jpg",
+    status: "Agendada",
+    location: "Consulta online",
+    price: "R$ 150,00",
+    duration: "50 min",
+  },
+  // upcoming appointment for scheduling flow
+  {
+    id: 203,
+    datetime: "2025-11-05T14:30:00Z",
+    professionalId: 1,
+    professional: "Dra. Laura Mendes",
     professionalPicture: "https://randomuser.me/api/portraits/women/10.jpg",
     status: "Agendada",
     location: "Consulta online",
     price: "R$ 150,00",
     duration: "50 min",
   },
+  // next appointment for the patient view happening today as well
   {
-    id: 102,
-    datetime: "2025-10-20T14:30:00Z",
-    professional: "Dr. Rafael Moreira",
+    id: 205,
+    datetime: "2025-10-18T02:00:00Z",
+    professionalId: 2,
+    professional: "Marcos Silva",
     professionalPicture: "https://randomuser.me/api/portraits/men/11.jpg",
-    status: "Confirmada",
+    status: "Agendada",
     location: "Clínica Centro",
-    price: "R$ 180,00",
-    duration: "50 min",
-  },
-  {
-    id: 103,
-    datetime: "2025-10-22T09:00:00Z",
-    professional: "Dra. Paula Fernandes",
-    professionalPicture: "https://randomuser.me/api/portraits/women/12.jpg",
-    status: "Agendada",
-    location: "Consulta online",
-    price: "R$ 160,00",
-    duration: "50 min",
-  },
-  {
-    id: 104,
-    datetime: "2025-10-25T16:15:00Z",
-    professional: "Dr. André Gomes",
-    professionalPicture: "https://randomuser.me/api/portraits/men/13.jpg",
-    status: "Agendada",
-    location: "Clínica Leste",
     price: "R$ 140,00",
-    duration: "50 min",
-  },
-  {
-    id: 105,
-    datetime: "2025-11-01T08:45:00Z",
-    professional: "Dra. Juliana Alves",
-    professionalPicture: "https://randomuser.me/api/portraits/women/14.jpg",
-    status: "Confirmada",
-    location: "Consulta online",
-    price: "R$ 170,00",
     duration: "50 min",
   },
 ];
 
-export const nextAppointment = homeUpcoming.length ? homeUpcoming[0] : null;
+export const nextAppointment = null;
 
 export default { homeUpcoming, nextAppointment };

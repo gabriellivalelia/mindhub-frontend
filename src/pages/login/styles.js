@@ -227,7 +227,7 @@ export const TextButtonContainer = styled.div`
 `;
 
 export const Text = styled.span`
-  color: ${Colors.GREEN};
+  color: ${Colors.LIGHT_GREEN};
   font-size: ${FontSizes.MEDIUM};
   font-weight: bold;
 `;

@@ -50,19 +50,18 @@ function Login() {
 
     try {
       if (
-        data.email === "gabrielli@gmail.com" &&
-        data.password === "12345678"
+        (data.email === "patient@gmail.com" &&
+        data.password === "12345678") || (data.email === "psychologist@gmail.com" &&
+        data.password === "12345678")
       ) {
-        // Exemplo: armazenar um token no localStorage quando o login for bem-sucedido.
-        // Em uma integração real, substitua pelo token retornado pela API: setToken(response.data.token)
         const fakeToken = "fake-jwt-token-123456";
+        const demoUserType = data.email.includes('patient') ? 'patient' : 'psychologist';
+
         setToken(fakeToken);
-        // Demo: determinar um tipo de usuário simples baseado no email
-        const demoUserType = data.email.includes('gabrielli') ? 'patient' : 'psychologist';
         setUserType(demoUserType);
-        navigate("/appointmentsPatient");
+        navigate("/");
       } else {
-        alert(`Errou. ${data.email} ${data.password}`);
+        alert(`Dados inválidos.`);
       }
     } catch (error) {
       console.error(
@@ -78,7 +77,7 @@ function Login() {
   return (
     <MainContainer>
       <LeftContainer>
-        <GoogleButton>
+        {/* <GoogleButton>
           <GoogleIcon src={GoogleIconsSrc} />
           Entrar com Google
         </GoogleButton>
@@ -86,7 +85,7 @@ function Login() {
           <Line />
           <TextDivider>Ou</TextDivider>
           <Line />
-        </DividerContainer>
+        </DividerContainer> */}
         <FormContainer>
           <Form onSubmit={handleSubmit(getLogin)}>
             <InputContainer>

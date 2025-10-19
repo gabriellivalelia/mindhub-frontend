@@ -1,6 +1,7 @@
 // Helpers simples para manipular token e tipo de usuário no localStorage
 const TOKEN_KEY = "token";
 const USER_TYPE_KEY = "user_type";
+const USER_EMAIL_KEY = "user_email";
 
 export function setToken(token) {
   try {
@@ -58,6 +59,37 @@ export function removeUserType() {
   }
 }
 
+export function setUserEmail(email) {
+  try {
+    localStorage.setItem(USER_EMAIL_KEY, email);
+  } catch (e) {
+    console.error(
+      "Não foi possível salvar o email do usuário no localStorage",
+      e
+    );
+  }
+}
+
+export function getUserEmail() {
+  try {
+    return localStorage.getItem(USER_EMAIL_KEY);
+  } catch (e) {
+    console.error("Não foi possível ler o email do usuário do localStorage", e);
+    return null;
+  }
+}
+
+export function removeUserEmail() {
+  try {
+    localStorage.removeItem(USER_EMAIL_KEY);
+  } catch (e) {
+    console.error(
+      "Não foi possível remover o email do usuário do localStorage",
+      e
+    );
+  }
+}
+
 export default {
   setToken,
   getToken,
@@ -65,4 +97,7 @@ export default {
   setUserType,
   getUserType,
   removeUserType,
+  setUserEmail,
+  getUserEmail,
+  removeUserEmail,
 };

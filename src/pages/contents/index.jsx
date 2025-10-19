@@ -9,6 +9,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
+import { FontSizes } from '../../globalConfigs';
 
 const mockContents = [
   { id: 1, title: 'Como lidar com ansiedade', body: '# Ansiedade\n\nDicas para lidar com ansiedade... **respire**' },
@@ -30,10 +31,6 @@ function Contents() {
       <SubHeader text="Conteúdos" />
       <Container>
         <Card>
-          <Button variant="contained" onClick={() => navigate('/write-content')} sx={{ backgroundColor: Colors.ORANGE, color: '#fff', textTransform: 'none', marginBottom: 12 }}>
-            Criar Conteúdo
-          </Button>
-
           <ContentList>
             {mockContents.map((c) => (
               <ContentItem key={c.id} onClick={() => openContent(c)}>
@@ -51,7 +48,7 @@ function Contents() {
       </Container>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{selected?.title}</DialogTitle>
+        <DialogTitle sx={{ color: Colors.ORANGE, fontSize: FontSizes.XLARGE }}>{selected?.title}</DialogTitle>
         <DialogContent>
           <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{selected?.body || ''}</ReactMarkdown>
         </DialogContent>

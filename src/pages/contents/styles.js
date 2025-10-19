@@ -24,10 +24,9 @@ export const Container = styled.div`
 `;
 
 export const Card = styled.div`
-  background: ${Colors.WHITE};
+  background: ${Colors.LIGHT_GREY};
   border-radius: 8px;
   padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   width: 100%;
 `;
 
@@ -44,7 +43,12 @@ export const ContentItem = styled.div`
   gap: 12px;
   padding: 0.75rem;
   border-radius: 6px;
-  background: ${Colors.LIGHT_ORANGE};
+  background: ${Colors.WHITE};
+
+  @media (max-width: ${BreakPoints.TABLET}) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 export const ContentTitle = styled.div`

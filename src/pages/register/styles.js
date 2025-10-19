@@ -8,6 +8,8 @@ export const PageContainer = styled.div`
   flex-direction: column;
   font-family: Arial, sans-serif;
   min-height: 100%;
+  /* local safeguard against horizontal overflow */
+  overflow-x: hidden;
 `;
 
 export const Container = styled.main`
@@ -34,18 +36,20 @@ export const FormContainer = styled.div`
 
 export const ToggleContainer = styled.div`
   display: flex;
-  background-color: "transparent";
-  border: 2px solid ${Colors.GREY};
+  background-color: transparent;
+  border: 2px solid ${Colors.GREEN};
   border-radius: 8px;
   min-width: 90%;
   overflow: hidden;
+  /* prevent horizontal scroll due to children width */
+  overflow-x: hidden;
 `;
 
 export const ToggleButton = styled.button`
   align-items: center;
-  background: ${(props) => (props.active ? Colors.GREY : "transparent")};
+  background: ${(props) => (props.active ? Colors.GREEN : "transparent")};
   border: none;
-  color: ${(props) => (props.active ? Colors.WHITE : Colors.GREY)};
+  color: ${Colors.WHITE};
   display: flex;
   flex-direction: row;
   font-size: ${FontSizes.MEDIUM};
@@ -160,7 +164,7 @@ export const LoaderBox = styled.div`
 `;
 
 export const Message = styled.p`
-  color: red;
+  color: ${Colors.RED};
   font-size: 0.75rem;
   height: 1rem;
   margin: 0;
@@ -185,7 +189,7 @@ export const TextButtonContainer = styled.div`
 `;
 
 export const Text = styled.span`
-  color: ${Colors.GREEN};
+  color: ${Colors.LIGHT_GREEN};
   font-size: ${FontSizes.MEDIUM};
   font-weight: bold;
 `;

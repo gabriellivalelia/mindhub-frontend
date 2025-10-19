@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoadingOutlined } from "@ant-design/icons";
 import PsychologyIcon from "@mui/icons-material/Psychology";
@@ -25,6 +25,7 @@ import {
   PageContainer,
   StyledMaskInput,
   SubmitButton,
+  FullMessage,
   Text,
   TextButton,
   TextButtonContainer,
@@ -41,6 +42,7 @@ import { specialtyOptions } from "./specialtyOptions";
 import { genderOptions } from "./genderOptions";
 
 import { FontSizes } from "../../globalConfigs";
+import Colors from "../../globalConfigs/globalStyles/colors";
 
 import Select from 'react-select'
 
@@ -67,22 +69,49 @@ const customStyles = {
     ...provided,
     height: "22px",
   }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isSelected ? Colors.ORANGE : state.isFocused ? Colors.LIGHT_ORANGE : provided.backgroundColor,
+    color: state.isSelected ? Colors.WHITE : provided.color,
+  }),
+  singleValue: (provided) => ({
+    ...provided,
+    color: Colors.DARK_GREY,
+  }),
+  multiValue: (provided) => ({
+    ...provided,
+    backgroundColor: Colors.ORANGE,
+    color: Colors.WHITE,
+  }),
+  multiValueLabel: (provided) => ({
+    ...provided,
+    color: Colors.WHITE,
+  }),
+  multiValueRemove: (provided) => ({
+    ...provided,
+    color: Colors.WHITE,
+    ':hover': {
+      backgroundColor: Colors.LIGHT_ORANGE,
+      color: Colors.WHITE,
+    }
+  }),
 };
 
 
 function Register() {
-  const [userType, setUserType] = useState("pacient");
+  const [userType, setUserType] = useState("patient");
   const [loading, setLoading] = useState(false);
   const [registerError, setRegisterError] = useState("");
   const navigate = useNavigate();
 
   const currentSchema =
-    userType === "pacient"
+    userType === "patient"
       ? CreatePacientFormSchema
       : CreatePsychologistFormSchema;
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
     reset,
@@ -99,8 +128,31 @@ function Register() {
   async function createUser(userData) {
     setLoading(true);
     setRegisterError("");
-    console.log("Submitting User Data:", { ...userData, userType });
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    const normalizeSelect = (v) => {
+      if (v == null) return undefined;
+      if (typeof v === 'string') return v;
+      if (typeof v === 'object') return v.value ?? v.label;
+      return undefined;
+    };
+
+    const normalizeMulti = (arr) => {
+      if (!arr) return [];
+      if (!Array.isArray(arr)) return [];
+      return arr.map((item) => (typeof item === 'object' ? (item.value ?? item.label) : item));
+    };
+
+    const payload = {
+      ...userData,
+      userType,
+      gender: normalizeSelect(userData.gender),
+      state: normalizeSelect(userData.state),
+      city: normalizeSelect(userData.city),
+      approaches: userData.approaches ? normalizeMulti(userData.approaches) : undefined,
+      specialties: userData.specialties ? normalizeMulti(userData.specialties) : undefined,
+    };
+
+    console.log("Submitting User Data:", payload);
     setLoading(false);
   }
 
@@ -113,8 +165,8 @@ function Register() {
           <ToggleContainer>
             <ToggleButton
               type="button"
-              active={userType === "pacient"}
-              onClick={() => setUserType("pacient")}
+              active={userType === "patient"}
+              onClick={() => setUserType("patient")}
             >
               <RecordVoiceOver />
               Paciente
@@ -130,7 +182,6 @@ function Register() {
           </ToggleContainer>
 
           <Form onSubmit={handleSubmit(createUser)} noValidate>
-            {/* --- NOME COMPLETO AGORA OCUPA A LARGURA TODA --- */}
             <FullWidthInputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="name">NOME COMPLETO</Label>
@@ -146,10 +197,9 @@ function Register() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="birthDate">DATA DE NASCIMENTO</Label>
-                <StyledMaskInput
+                <Input
                   id="birthDate"
-                  mask="00/00/0000"
-                  placeholder="dd/mm/aaaa"
+                  type="date"
                   {...register("birthDate")}
                 />
               </InputAndLabelBox>
@@ -161,11 +211,20 @@ function Register() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="cpf">CPF</Label>
-                <StyledMaskInput
-                  id="cpf"
-                  mask="000.000.000-00"
-                  placeholder="000.000.000-00"
-                  {...register("cpf")}
+                <Controller
+                  name="cpf"
+                  control={control}
+                  render={({ field }) => (
+                    <StyledMaskInput
+                      id="cpf"
+                      mask="000.000.000-00"
+                      placeholder="000.000.000-00"
+                      value={field.value || ""}
+                      onAccept={(value) => field.onChange(value)}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  )}
                 />
               </InputAndLabelBox>
               {errors.cpf && <Message>{errors.cpf.message}</Message>}
@@ -174,11 +233,20 @@ function Register() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="phone">TELEFONE</Label>
-                <StyledMaskInput
-                  id="phone"
-                  mask="(00) 00000-0000"
-                  placeholder="(00) 00000-0000"
-                  {...register("phone")}
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <StyledMaskInput
+                      id="phone"
+                      mask="(00) 00000-0000"
+                      placeholder="(00) 00000-0000"
+                      value={field.value || ""}
+                      onAccept={(value) => field.onChange(value)}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  )}
                 />
               </InputAndLabelBox>
               {errors.phone && <Message>{errors.phone.message}</Message>}
@@ -187,22 +255,36 @@ function Register() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="gender">GÊNERO</Label>
-                  <Select id="gender" {...register("gender")}
-                    options={genderOptions}
-                    styles={customStyles}
-                    placeholder="Selecione..."
-                  />
+                    <Controller
+                      name="gender"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          {...field}
+                          options={genderOptions}
+                          styles={customStyles}
+                          placeholder="Selecione..."
+                        />
+                      )}
+                    />
               </InputAndLabelBox>
-              {errors.address && <Message>{errors.address.message}</Message>}
+                {errors.gender && <Message>{errors.gender.message}</Message>}
             </InputContainer>
 
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="state">ESTADO</Label>
-                <Select id="state" {...register("state")}
-                    options={stateOptions}
-                    styles={customStyles}
-                    placeholder="Selecione..."
+                <Controller
+                  name="state"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      options={stateOptions}
+                      styles={customStyles}
+                      placeholder="Selecione..."
+                    />
+                  )}
                 />
               </InputAndLabelBox>
               {errors.state && <Message>{errors.state.message}</Message>}
@@ -211,13 +293,20 @@ function Register() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="city">CIDADE</Label>
-                <Select id="city" {...register("city")}
-                  options={cityOptions}
-                  styles={customStyles}
-                  placeholder="Selecione..."
+                <Controller
+                  name="city"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      options={cityOptions}
+                      styles={customStyles}
+                      placeholder="Selecione..."
+                    />
+                  )}
                 />
               </InputAndLabelBox>
-              {errors.address && <Message>{errors.address.message}</Message>}
+              {errors.city && <Message>{errors.city.message}</Message>}
             </InputContainer>
 
             {userType === "psychologist" && (
@@ -225,29 +314,45 @@ function Register() {
                 <InputContainer>
                   <InputAndLabelBox>
                     <Label htmlFor="crp">CRP</Label>
-                    <StyledMaskInput
-                      id="crp"
-                      mask="00/000000"
-                      {...register("crp")}
-                      placeholder="00/000000"
-                    />
+                        <Controller
+                          name="crp"
+                          control={control}
+                          render={({ field }) => (
+                            <StyledMaskInput
+                              id="crp"
+                              mask="00/000000"
+                              placeholder="00/000000"
+                              value={field.value || ""}
+                              onAccept={(value) => field.onChange(value)}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                            />
+                          )}
+                        />
                   </InputAndLabelBox>
                   {errors.crp && <Message>{errors.crp.message}</Message>}
                 </InputContainer>
-                <InputContainer>
+                <FullWidthInputContainer>
                   <InputAndLabelBox>
                     <Label htmlFor="approaches">ABORDAGEM</Label>
-                    <Select id="approaches" {...register("approaches")}
-                      options={approachOptions}
-                      styles={customStyles}
-                      isMulti
-                      placeholder="Selecione..."
+                    <Controller
+                      name="approaches"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          {...field}
+                          options={approachOptions}
+                          styles={customStyles}
+                          isMulti
+                          placeholder="Selecione..."
+                        />
+                      )}
                     />
                   </InputAndLabelBox>
-                  {errors.approach && (
-                    <Message>{errors.approach.message}</Message>
+                  {errors.approaches && (
+                    <Message>{errors.approaches.message}</Message>
                   )}
-                </InputContainer>
+                </FullWidthInputContainer>
               </>
             )}
 
@@ -255,14 +360,21 @@ function Register() {
             <FullWidthInputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="specialties">ESPECIALIDADES</Label>
-                <Select id="specialties" {...register("specialties")}
-                  options={specialtyOptions}
-                  styles={customStyles}
-                  isMulti
-                  placeholder="Selecione..."
+                <Controller
+                  name="specialties"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      options={specialtyOptions}
+                      styles={customStyles}
+                      isMulti
+                      placeholder="Selecione..."
+                    />
+                  )}
                 />
               </InputAndLabelBox>
-              {errors.email && <Message>{errors.email.message}</Message>}
+              {errors.specialties && <Message>{errors.specialties.message}</Message>}
             </FullWidthInputContainer>
            </>)}
 
