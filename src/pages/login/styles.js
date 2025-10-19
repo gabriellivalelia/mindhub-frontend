@@ -202,22 +202,18 @@ export const Message = styled.div`
   width: 100%;
 `;
 
-//TO DO: Implementar após implementação da autenticação
-// export const LoaderBox = styled.div`
-//   width: 50%;
-//   min-width: 120px;
-//   height: 32px;
-//   background: #ffa40d;
-//   color: white;
-//   border: solid 1px;
-//   border-color: white;
-//   border-radius: 0.625rem;
-//   margin-top: 2%;
-
-//   display: flex;
-//   justify-content: center;
-//   align-items: center;
-// `;
+export const LoaderBox = styled.div`
+  align-items: center;
+  background: ${Colors.GREEN};
+  border: solid 1px ${Colors.BROWN};
+  border-radius: 5px;
+  color: ${Colors.WHITE};
+  display: flex;
+  font-size: ${FontSizes.LARGE};
+  height: 45px;
+  justify-content: center;
+  width: 100%;
+`;
 
 export const TextButtonContainer = styled.div`
   align-items: center;

@@ -15,6 +15,7 @@ import {
   Label,
   Message,
   SubmitButton,
+  LoaderBox,
   LogoContainer,
   Logo,
   TextButtonContainer,
@@ -30,7 +31,9 @@ import { useState } from "react";
 import { LoginFormSchema } from "./loginFormSchema";
 import GoogleIconsSrc from "../../assets/googleIcon.png";
 import LogoSrc from "../../assets/logo.png";
-import { setToken, setUserType } from "../../utils/auth";
+import { authService } from "../../services/authService";
+import { HTTP_STATUS } from "../../utils/constants";
+
 
 function Login() {
   const navigate = useNavigate();
@@ -45,32 +48,21 @@ function Login() {
     resolver: zodResolver(LoginFormSchema),
   });
 
-  async function getLogin(data) {
+  async function handleLogin(data) {
     setLoading(true);
 
-    try {
-      if (
-        (data.email === "patient@gmail.com" &&
-        data.password === "12345678") || (data.email === "psychologist@gmail.com" &&
-        data.password === "12345678")
-      ) {
-        const fakeToken = "fake-jwt-token-123456";
-        const demoUserType = data.email.includes('patient') ? 'patient' : 'psychologist';
-
-        setToken(fakeToken);
-        setUserType(demoUserType);
-        navigate("/");
+    const result = await authService.login(data.email, data.password);
+    if (result.success) {
+      console.log("Login bem-sucedido!", result.data);
+      navigate("/");
+    } else {
+      if (result.error?.status === HTTP_STATUS.UNAUTHORIZED) {
+        setLoginError("E-mail ou senha incorretos.");
       } else {
-        alert(`Dados inválidos.`);
+        setLoginError("Erro ao fazer login. Tente novamente mais tarde.");
       }
-    } catch (error) {
-      console.error(
-        "Erro ao fazer login:",
-        error?.response?.data?.message || "Erro ao fazer Login"
-      );
-      setLoginError(error?.response?.data?.message || "Erro ao fazer Login");
     }
-
+  
     setLoading(false);
   }
 
@@ -87,7 +79,7 @@ function Login() {
           <Line />
         </DividerContainer> */}
         <FormContainer>
-          <Form onSubmit={handleSubmit(getLogin)}>
+          <Form onSubmit={handleSubmit(handleLogin)}>
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="email">E-MAIL</Label>
