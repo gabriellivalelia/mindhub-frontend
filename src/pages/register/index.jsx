@@ -252,7 +252,7 @@ function Register() {
       console.error("Erro ao criar usuário:", error);
 
       if (error.data?.errors) {
-        setRegisterError(error.data.errors);
+        setRegisterError(error.data.errors?.join("\n"));
       } else if (error.message) {
         setRegisterError(error.message);
       } else if (error.data?.detail) {

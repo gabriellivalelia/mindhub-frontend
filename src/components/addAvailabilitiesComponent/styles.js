@@ -18,18 +18,19 @@ export const ScheduleWrapper = styled.div`
 export const TopControls = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   width: 100%;
   margin-bottom: 8px;
+  gap: 4px;
 
   @media (max-width: ${BreakPoints.TABLET}) {
     justify-content: center;
-    gap: 8px;
+    gap: 2px;
   }
 
   @media (max-width: ${BreakPoints.MOBILE}) {
     justify-content: center;
-    gap: 6px;
+    gap: 0px;
   }
 `;
 
@@ -47,7 +48,7 @@ export const ArrowButton = styled.button`
   cursor: pointer;
   font-size: ${FontSizes.LARGER};
   color: ${Colors.ORANGE};
-  padding: 0 12px;
+  padding: 0 4px;
 
   &:hover {
     opacity: 0.85;
@@ -153,7 +154,7 @@ export const TimeSlot = styled.div`
   cursor: default;
 
   ${(props) =>
-    props.available &&
+    props.$available &&
     css`
       background-color: ${Colors.LIGHT_GREEN};
       color: ${Colors.GREEN};
@@ -166,20 +167,34 @@ export const TimeSlot = styled.div`
     `}
 
   ${(props) =>
-    props.selected &&
-    props.available &&
+    props.$selected &&
+    props.$available &&
     css`
       background-color: ${Colors.GREEN};
       color: ${Colors.WHITE};
       border-color: ${Colors.GREEN};
+      cursor: pointer;
     `}
 
   ${(props) =>
-    props.readonly &&
+    props.$markedForRemoval &&
+    css`
+      background-color: #ffcccc;
+      color: #cc0000;
+      border: 1px solid #cc0000;
+      cursor: pointer;
+
+      &:hover {
+        background-color: #ff9999;
+      }
+    `}
+
+  ${(props) =>
+    props.$readonly &&
     css`
       background-color: ${Colors.LIGHT_GREY};
       color: ${Colors.GREY};
-      opacity: 0.8;
+      opacity: 0.6;
       cursor: default;
       pointer-events: none;
       border: 1px solid ${Colors.GREY};

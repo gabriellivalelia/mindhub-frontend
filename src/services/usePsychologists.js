@@ -1,43 +1,87 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "./api";
+import { useAuthStore } from "../stores/useAuthStore";
 
 /**
- * Hook para buscar disponibilidades do psicólogo
- * @param {string} psychologistId - ID do psicólogo
- * @param {Object} params - Parâmetros de filtro (data inicial, data final)
+ * Hook para buscar perfil do psicólogo autenticado
  */
-export function useAvailabilities(psychologistId, params = {}) {
+export function useCurrentPsychologist() {
+  const user = useAuthStore((state) => state.user);
+  const psychologistId = user?.id;
+
   return useQuery({
-    queryKey: ["availabilities", psychologistId, params],
+    queryKey: ["currentPsychologist", psychologistId],
     queryFn: async () => {
-      const response = await api.get(
-        `/psychologists/${psychologistId}/availabilities`,
-        { params }
-      );
+      const response = await api.get(`/psychologists/${psychologistId}`);
       return response.data;
     },
     enabled: !!psychologistId,
-    staleTime: 2 * 60 * 1000, // 2 minutos
+    staleTime: 5 * 60 * 1000,
   });
 }
 
 /**
- * Hook para atualizar disponibilidades do psicólogo
+ * Hook para adicionar disponibilidades do psicólogo autenticado
+ * @returns {Object} Mutation object com mutateAsync e outras propriedades
+ * @example
+ * const addAvailabilities = useAddAvailabilities();
+ * await addAvailabilities.mutateAsync({
+ *   availabilityDatetimes: [
+ *     "2025-10-05T18:50:29.022Z",
+ *     "2025-10-15T18:50:29.022Z"
+ *   ]
+ * });
  */
-export function useUpdateAvailabilities() {
+export function useAddAvailabilities() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ psychologistId, availabilities }) => {
-      const response = await api.put(
-        `/psychologists/${psychologistId}/availabilities`,
-        { availabilities }
+    mutationFn: async (availabilityDatetimes) => {
+      const response = await api.post(
+        "/psychologists/availabilities",
+        availabilityDatetimes
       );
       return response.data;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (data) => {
+      // Invalidar cache do psicólogo atual
       queryClient.invalidateQueries({
-        queryKey: ["availabilities", variables.psychologistId],
+        queryKey: ["currentPsychologist", data.id],
+      });
+      // Invalidar cache de psicólogo individual
+      queryClient.invalidateQueries({
+        queryKey: ["psychologist", data.id],
+      });
+      // Invalidar lista de psicólogos
+      queryClient.invalidateQueries({
+        queryKey: ["psychologists"],
+      });
+    },
+  });
+}
+
+export function useRemoveAvailabilities() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (availabilityDatetimes) => {
+      const response = await api.delete("/psychologists/availabilities", {
+        data: availabilityDatetimes,
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Invalidar cache do psicólogo atual
+      queryClient.invalidateQueries({
+        queryKey: ["currentPsychologist", data.id],
+      });
+      // Invalidar cache de psicólogo individual
+      queryClient.invalidateQueries({
+        queryKey: ["psychologist", data.id],
+      });
+      // Invalidar lista de psicólogos
+      queryClient.invalidateQueries({
+        queryKey: ["psychologists"],
       });
     },
   });
