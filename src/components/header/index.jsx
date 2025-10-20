@@ -12,46 +12,39 @@ import {
   NavBarHover,
 } from "./styles";
 import LogoSrc from "../../assets/logo.png";
-import ProfileSrc from "../../assets/profile.jpeg";
-import AccountMenu from './accountMenu';
-import { getToken } from "../../utils/auth";
+import AccountMenu from "./accountMenu";
+import { useAuthStore } from "../../stores/useAuthStore";
 
 function Header() {
-
-  const authenticated = !!getToken();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
- 
+
   return (
-      <MainContainer>
-        <LogoContainer>
-          <Logo src={LogoSrc} />
-        </LogoContainer>
-        <NavBar authenticated={authenticated}>
-          <Link to="/">
-            <NavBarHover>Home</NavBarHover>
-          </Link>
-          <Link to="/appointments">
-            <NavBarHover>Consultas</NavBarHover>
-          </Link>
-          <Link to="/contents">
-            <NavBarHover>Conteúdos</NavBarHover>
-          </Link>
-        </NavBar>
-        <ButtonContainer authenticated={authenticated}>
-          <Button
-            onClick={() => navigate("/login")}
-          >
-            Entrar
-          </Button>
-        </ButtonContainer>
-        <ImageProfileContainer authenticated={authenticated}>
-          {authenticated ? (
-            <AccountMenu avatarSrc={ProfileSrc} />
-          ) : (
-            <ImageProfile src={ProfileSrc} />
-          )}
-        </ImageProfileContainer>
-      </MainContainer>
+    <MainContainer>
+      <LogoContainer>
+        <Logo src={LogoSrc} />
+      </LogoContainer>
+      <NavBar authenticated={isAuthenticated}>
+        <Link to="/">
+          <NavBarHover>Home</NavBarHover>
+        </Link>
+        <Link to="/appointments">
+          <NavBarHover>Consultas</NavBarHover>
+        </Link>
+        <Link to="/contents">
+          <NavBarHover>Conteúdos</NavBarHover>
+        </Link>
+      </NavBar>
+      <ButtonContainer authenticated={isAuthenticated}>
+        <Button onClick={() => navigate("/login")}>Entrar</Button>
+      </ButtonContainer>
+      <ImageProfileContainer authenticated={isAuthenticated}>
+        {isAuthenticated && (
+          <AccountMenu avatarSrc={user?.profile_picture?.src} />
+        )}
+      </ImageProfileContainer>
+    </MainContainer>
   );
 }
 

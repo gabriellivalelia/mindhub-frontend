@@ -7,7 +7,7 @@ import api from "./api";
  * @param {string} params.status - Filtrar por status
  * @param {string} params.date - Filtrar por data
  * @param {number} params.page - Número da página
- * @param {number} params.limit - Itens por página
+ * @param {number} params.size - Itens por página
  * @returns {Object} Query result com data, isLoading, error, etc.
  */
 export function useAppointments(params = {}) {
@@ -17,8 +17,6 @@ export function useAppointments(params = {}) {
       const response = await api.get("/appointments", { params });
       return response.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    refetchOnWindowFocus: true,
   });
 }
 
@@ -34,7 +32,6 @@ export function useAppointment(appointmentId) {
       return response.data;
     },
     enabled: !!appointmentId, // Só executa se houver ID
-    staleTime: 2 * 60 * 1000, // 2 minutos
   });
 }
 

@@ -1,12 +1,5 @@
 import api from "./api";
-import {
-  setToken,
-  removeToken,
-  setUserType,
-  removeUserType,
-  setUserEmail,
-  removeUserEmail,
-} from "../utils/auth";
+import { useAuthStore } from "../stores/useAuthStore";
 
 /**
  * Serviço de autenticação
@@ -28,7 +21,8 @@ export const authService = {
       });
 
       const { access_token: accessToken } = response.data;
-      setToken(accessToken);
+
+      useAuthStore.getState().setToken(accessToken);
 
       const result = await this.getCurrentUser();
       if (!result.success) {
@@ -36,9 +30,7 @@ export const authService = {
       }
 
       const user = result.data;
-
-      setUserType(user.type);
-      setUserEmail(user.email);
+      useAuthStore.getState().setUser(user);
 
       return {
         success: true,
@@ -77,15 +69,11 @@ export const authService = {
    */
   async logout() {
     try {
-      // Chamar endpoint de logout no backend (opcional, para invalidar refreshToken)
-      await api.post("/auth/logout", {}, { withCredentials: true });
+      await api.post("/auth/logout");
     } catch (error) {
       console.error("Erro ao fazer logout no servidor:", error);
     } finally {
-      // Limpar dados locais independentemente do resultado
-      removeToken();
-      removeUserType();
-      removeUserEmail();
+      useAuthStore.getState().clearAuth();
     }
   },
 };

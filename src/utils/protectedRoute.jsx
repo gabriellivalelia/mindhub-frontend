@@ -1,9 +1,10 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { getToken } from './auth';
+import React from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuthStore } from "../stores/useAuthStore";
 
-export default function ProtectedRoute({ children }) {
-  const auth = getToken();
-  if (!auth) return <Navigate to="/unauthorized" replace />;
-  return children;
+export default function ProtectedRoute() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  if (!isAuthenticated) return <Navigate to="/unauthorized" replace />;
+
+  return <Outlet />;
 }

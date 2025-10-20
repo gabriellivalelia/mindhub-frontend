@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getToken } from "../utils/auth";
+import { useAuthStore } from "../stores/useAuthStore";
 
 // Configuração base da API
 const api = axios.create({
@@ -29,7 +29,7 @@ const api = axios.create({
 // Interceptor de requisição: adiciona token de autenticação
 api.interceptors.request.use(
   (config) => {
-    const token = getToken();
+    const token = useAuthStore.getState().token;
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

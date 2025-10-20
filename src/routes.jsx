@@ -5,9 +5,9 @@ import {
   Navigate,
   Route,
   RouterProvider,
-} from 'react-router-dom';
+} from "react-router-dom";
 import {
-  AddAvailabilities, 
+  AddAvailabilities,
   AppointmentsPatient,
   AppointmentsPsychologist,
   Contents,
@@ -21,17 +21,14 @@ import {
   WriteContent,
   ScheduleNewAppointment,
   Payment,
-} from './pages';
-import { 
-  Footer, 
-  Header 
-} from './components';
+} from "./pages";
+import { Footer, Header } from "./components";
 
-import App from './App';
-import { getToken, getUserType } from './utils/auth';
-import { AppointmentItem } from './pages/home/styles';
-import ProtectedRoute from './utils/protectedRoute';
-import UnauthRoute from './utils/unauthRoute';
+import App from "./App";
+import { useAuthStore } from "./stores/useAuthStore";
+import { AppointmentItem } from "./pages/home/styles";
+import ProtectedRoute from "./utils/protectedRoute";
+import UnauthRoute from "./utils/unauthRoute";
 
 function HasFooterAndHeaderRoutes() {
   return (
@@ -43,31 +40,62 @@ function HasFooterAndHeaderRoutes() {
   );
 }
 
-const auth = getToken();
+function AppointmentsRoute() {
+  const userType = useAuthStore((state) => state.user?.type);
+  return (
+    <>
+      {userType === "psychologist" ? (
+        <AppointmentsPsychologist />
+      ) : (
+        <AppointmentsPatient />
+      )}
+    </>
+  );
+}
+
+function AddAvailabilitiesRoute() {
+  const userType = useAuthStore((state) => state.user?.type);
+  return <>{userType === "psychologist" ? <AddAvailabilities /> : <Home />}</>;
+}
+
+function WriteContentRoute() {
+  const userType = useAuthStore((state) => state.user?.type);
+  return <>{userType === "psychologist" ? <WriteContent /> : <Home />}</>;
+}
+
+function HomeRoute() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  return isAuthenticated ? <Home /> : <PreLogin />;
+}
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path="/" element={<App />}>
+      <Route element={<UnauthRoute />}>
+        <Route path="login" element={<Login />} />
+        <Route path="register" element={<Register />} />
+      </Route>
       <Route element={<HasFooterAndHeaderRoutes />}>
-          <Route index element={auth ? <Home /> : <Unauthorized />} />
-          <Route
-            path="appointments"
-            element={<ProtectedRoute>{getUserType() === 'psychologist' ? <AppointmentsPsychologist /> : <AppointmentsPatient />}</ProtectedRoute>}
-          />
+        <Route index element={<HomeRoute />} />
+        <Route element={<ProtectedRoute />}>
+          <Route index element={<HomeRoute />} />
+          <Route path="appointments" element={<AppointmentsRoute />} />
           <Route
             path="add-availabilities"
-            element={<ProtectedRoute>{getUserType() === 'psychologist' ? <AddAvailabilities /> : <Home />}</ProtectedRoute>}
+            element={<AddAvailabilitiesRoute />}
           />
-          <Route path="contents" element={<ProtectedRoute><Contents /></ProtectedRoute>} />
-          <Route path="write-content" element={<ProtectedRoute><WriteContent /></ProtectedRoute>} />
-          <Route path="edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
-          <Route path="schedule-new-appointment" element={<ProtectedRoute><ScheduleNewAppointment /></ProtectedRoute>} />
-          <Route path="payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
-          <Route path="unauthorized" element={<Unauthorized />} />
+          <Route path="contents" element={<Contents />} />
+          <Route path="write-content" element={<WriteContentRoute />} />
+          <Route path="edit-profile" element={<EditProfile />} />
+          <Route
+            path="schedule-new-appointment"
+            element={<ScheduleNewAppointment />}
+          />
+          <Route path="payment" element={<Payment />} />
+        </Route>
+        <Route path="unauthorized" element={<Unauthorized />} />
+        <Route path="*" element={<HomeRoute />} />
       </Route>
-      <Route path="login" element={<UnauthRoute><Login /></UnauthRoute>} />
-      <Route path="register" element={<UnauthRoute><Register /></UnauthRoute>} />
-      <Route path="*" element={<NotFound />} />
     </Route>
   )
 );

@@ -1,9 +1,9 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { getToken } from './auth';
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuthStore } from "../stores/useAuthStore";
 
-export default function UnauthRoute({ children }) {
-  const auth = getToken();
-  if (auth) return <Navigate to="/" replace />;
-  return children;
+export default function UnauthRoute() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  if (isAuthenticated) return <Navigate to="/" replace />;
+
+  return <Outlet />;
 }
