@@ -126,6 +126,41 @@ export const StyledMaskInput = styled(IMaskInput)`
   ${commonInputStyles}
 `;
 
+export const PasswordInputWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+
+  input {
+    flex: 1;
+  }
+`;
+
+export const PasswordToggleIcon = styled.button`
+  background: none;
+  border: none;
+  color: ${Colors.GREY};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s;
+
+  &:hover {
+    color: ${Colors.DARK_GREY};
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  svg {
+    font-size: 1.2rem;
+  }
+`;
+
 export const SubmitButton = styled.input`
   background: ${Colors.GREEN};
   border: none;

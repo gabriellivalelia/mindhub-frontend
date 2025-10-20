@@ -22,11 +22,15 @@ import {
   Text,
   TextButton,
   CopyContainer,
+  PasswordInputWrapper,
+  PasswordToggleIcon,
 } from "./styles";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
 import { LoadingOutlined } from "@ant-design/icons";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useState } from "react";
 import { LoginFormSchema } from "./loginFormSchema";
 import GoogleIconsSrc from "../../assets/googleIcon.png";
@@ -34,11 +38,11 @@ import LogoSrc from "../../assets/logo.png";
 import { authService } from "../../services/authService";
 import { HTTP_STATUS } from "../../utils/constants";
 
-
 function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -62,7 +66,7 @@ function Login() {
         setLoginError("Erro ao fazer login. Tente novamente mais tarde.");
       }
     }
-  
+
     setLoading(false);
   }
 
@@ -95,13 +99,24 @@ function Login() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="password">SENHA</Label>
-                <Input
-                  type="password"
-                  id="password"
-                  placeholder="Senha"
-                  {...register("password")}
-                  autoComplete="off"
-                />
+                <PasswordInputWrapper>
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    placeholder="Senha"
+                    {...register("password")}
+                    autoComplete="off"
+                  />
+                  <PasswordToggleIcon
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={
+                      showPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </PasswordToggleIcon>
+                </PasswordInputWrapper>
               </InputAndLabelBox>
               {errors.password && <Message>{errors.password.message}</Message>}
             </InputContainer>

@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LoadingOutlined } from "@ant-design/icons";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import RecordVoiceOver from "@mui/icons-material/RecordVoiceOver";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 import {
   CreatePacientFormSchema,
@@ -15,7 +17,7 @@ import {
   Container,
   FormContainer,
   Form,
-  FullWidthInputContainer, 
+  FullWidthInputContainer,
   Input,
   InputAndLabelBox,
   InputContainer,
@@ -31,38 +33,46 @@ import {
   TextButtonContainer,
   ToggleButton,
   ToggleContainer,
+  PasswordInputWrapper,
+  PasswordToggleIcon,
 } from "./styles";
 
 import { SubHeader } from "../../components";
 
-import { stateOptions } from "./stateOptions";
-import { cityOptions } from "./cityOptions";
-import { approachOptions } from "./approachOptions";
-import { specialtyOptions } from "./specialtyOptions";
 import { genderOptions } from "./genderOptions";
+import { audiencesOptions } from "./audiencesOptions";
 
 import { FontSizes } from "../../globalConfigs";
 import Colors from "../../globalConfigs/globalStyles/colors";
 
-import Select from 'react-select'
+import Select from "react-select";
+import {
+  useRegisterPatient,
+  useRegisterPsychologist,
+  useStates,
+  useCitiesByState,
+  useSpecialties,
+  useApproaches,
+} from "../../services/registrationService";
+import { authService } from "../../services/authService";
 
 const customStyles = {
   control: (provided) => ({
     ...provided,
-    border: "none",     
-    boxShadow: "none",   
-    minHeight: "22px",    
+    border: "none",
+    boxShadow: "none",
+    minHeight: "22px",
     height: "22px",
-    fontSize: FontSizes.SMALLEST
+    fontSize: FontSizes.SMALLEST,
   }),
   valueContainer: (provided) => ({
     ...provided,
     height: "22px",
-    padding: "0.25rem 0",    
+    padding: "0.25rem 0",
   }),
   input: (provided) => ({
     ...provided,
-    margin: 0,            
+    margin: 0,
     padding: 0,
   }),
   indicatorsContainer: (provided) => ({
@@ -71,7 +81,11 @@ const customStyles = {
   }),
   option: (provided, state) => ({
     ...provided,
-    backgroundColor: state.isSelected ? Colors.ORANGE : state.isFocused ? Colors.LIGHT_ORANGE : provided.backgroundColor,
+    backgroundColor: state.isSelected
+      ? Colors.ORANGE
+      : state.isFocused
+        ? Colors.LIGHT_ORANGE
+        : provided.backgroundColor,
     color: state.isSelected ? Colors.WHITE : provided.color,
   }),
   singleValue: (provided) => ({
@@ -90,19 +104,61 @@ const customStyles = {
   multiValueRemove: (provided) => ({
     ...provided,
     color: Colors.WHITE,
-    ':hover': {
+    ":hover": {
       backgroundColor: Colors.LIGHT_ORANGE,
       color: Colors.WHITE,
-    }
+    },
   }),
 };
 
-
 function Register() {
-  const [userType, setUserType] = useState("patient");
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(window.location.search);
+  const typeFromUrl = searchParams.get("type");
+
+  const [userType, setUserType] = useState(
+    typeFromUrl === "psychologist" ? "psychologist" : "patient"
+  );
   const [loading, setLoading] = useState(false);
   const [registerError, setRegisterError] = useState("");
-  const navigate = useNavigate();
+  const [selectedState, setSelectedState] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmedPassword, setShowConfirmedPassword] = useState(false);
+
+  const registerPatientMutation = useRegisterPatient();
+  const registerPsychologistMutation = useRegisterPsychologist();
+
+  const { data: statesData, isLoading: loadingStates } = useStates();
+  const { data: citiesData, isLoading: loadingCities } =
+    useCitiesByState(selectedState);
+  const { data: specialtiesData, isLoading: loadingSpecialties } =
+    useSpecialties();
+  const { data: approachesData, isLoading: loadingApproaches } =
+    useApproaches();
+
+  const stateOptions =
+    statesData?.items?.map((state) => ({
+      value: state.id,
+      label: state.name,
+    })) || [];
+
+  const cityOptions =
+    citiesData?.map((city) => ({
+      value: city.id,
+      label: city.name,
+    })) || [];
+
+  const specialtyOptions =
+    specialtiesData?.items?.map((specialty) => ({
+      value: specialty.id,
+      label: specialty.name,
+    })) || [];
+
+  const approachOptions =
+    approachesData?.items?.map((approach) => ({
+      value: approach.id,
+      label: approach.name,
+    })) || [];
 
   const currentSchema =
     userType === "patient"
@@ -117,7 +173,6 @@ function Register() {
     reset,
   } = useForm({
     resolver: zodResolver(currentSchema),
-    mode: "onBlur",
   });
 
   useEffect(() => {
@@ -129,33 +184,90 @@ function Register() {
     setLoading(true);
     setRegisterError("");
 
-    const normalizeSelect = (v) => {
-      if (v == null) return undefined;
-      if (typeof v === 'string') return v;
-      if (typeof v === 'object') return v.value ?? v.label;
-      return undefined;
-    };
+    try {
+      const normalizeSelect = (v) => {
+        if (v == null) return undefined;
+        if (typeof v === "string") return v;
+        if (typeof v === "object") return v.value ?? v.label;
+        return undefined;
+      };
 
-    const normalizeMulti = (arr) => {
-      if (!arr) return [];
-      if (!Array.isArray(arr)) return [];
-      return arr.map((item) => (typeof item === 'object' ? (item.value ?? item.label) : item));
-    };
+      const normalizeMulti = (arr) => {
+        if (!arr) return [];
+        if (!Array.isArray(arr)) return [];
+        return arr.map((item) =>
+          typeof item === "object" ? (item.value ?? item.label) : item
+        );
+      };
 
-    const payload = {
-      ...userData,
-      userType,
-      gender: normalizeSelect(userData.gender),
-      state: normalizeSelect(userData.state),
-      city: normalizeSelect(userData.city),
-      approaches: userData.approaches ? normalizeMulti(userData.approaches) : undefined,
-      specialties: userData.specialties ? normalizeMulti(userData.specialties) : undefined,
-    };
+      const payload = {
+        name: userData.name,
+        email: userData.email,
+        password: userData.password,
+        cpf: userData.cpf,
+        phone: userData.phone,
+        birthDate: userData.birthDate,
+        gender: normalizeSelect(userData.gender),
+        cityId: normalizeSelect(userData.city),
+      };
 
-    console.log("Submitting User Data:", payload);
-    setLoading(false);
+      if (userType === "patient") {
+        await registerPatientMutation.mutateAsync(payload);
+      } else {
+        const psychologistPayload = {
+          ...payload,
+          crp: userData.crp,
+          valuePerAppointment: userData.valuePerAppointment,
+          description:
+            userData.description || "Psicólogo cadastrado no MindHub",
+          specialties: userData.specialties
+            ? normalizeMulti(userData.specialties)
+            : [],
+          approaches: userData.approaches
+            ? normalizeMulti(userData.approaches)
+            : [],
+          audiences: userData.audiences
+            ? normalizeMulti(userData.audiences)
+            : [],
+        };
+
+        await registerPsychologistMutation.mutateAsync(psychologistPayload);
+      }
+
+      const loginResult = await authService.login(
+        userData.email,
+        userData.password
+      );
+
+      if (loginResult.success) {
+        alert("Cadastro realizado com sucesso! Você já está logado.");
+        navigate("/");
+      } else {
+        alert(
+          "Cadastro realizado com sucesso! Faça login para acessar sua conta."
+        );
+        navigate("/login");
+      }
+    } catch (error) {
+      console.error("Erro ao criar usuário:", error);
+
+      if (error.data?.errors) {
+        setRegisterError(error.data.errors);
+      } else if (error.message) {
+        setRegisterError(error.message);
+      } else if (error.data?.detail) {
+        setRegisterError(error.data.detail);
+      } else if (error.response?.data?.detail) {
+        setRegisterError(error.response.data.detail);
+      } else {
+        setRegisterError(
+          "Erro ao realizar cadastro. Por favor, tente novamente."
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
   }
-
 
   return (
     <PageContainer>
@@ -197,11 +309,7 @@ function Register() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="birthDate">DATA DE NASCIMENTO</Label>
-                <Input
-                  id="birthDate"
-                  type="date"
-                  {...register("birthDate")}
-                />
+                <Input id="birthDate" type="date" {...register("birthDate")} />
               </InputAndLabelBox>
               {errors.birthDate && (
                 <Message>{errors.birthDate.message}</Message>
@@ -255,20 +363,20 @@ function Register() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="gender">GÊNERO</Label>
-                    <Controller
-                      name="gender"
-                      control={control}
-                      render={({ field }) => (
-                        <Select
-                          {...field}
-                          options={genderOptions}
-                          styles={customStyles}
-                          placeholder="Selecione..."
-                        />
-                      )}
+                <Controller
+                  name="gender"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      options={genderOptions}
+                      styles={customStyles}
+                      placeholder="Selecione..."
                     />
+                  )}
+                />
               </InputAndLabelBox>
-                {errors.gender && <Message>{errors.gender.message}</Message>}
+              {errors.gender && <Message>{errors.gender.message}</Message>}
             </InputContainer>
 
             <InputContainer>
@@ -283,6 +391,11 @@ function Register() {
                       options={stateOptions}
                       styles={customStyles}
                       placeholder="Selecione..."
+                      isLoading={loadingStates}
+                      onChange={(value) => {
+                        field.onChange(value);
+                        setSelectedState(value?.value || null);
+                      }}
                     />
                   )}
                 />
@@ -302,6 +415,8 @@ function Register() {
                       options={cityOptions}
                       styles={customStyles}
                       placeholder="Selecione..."
+                      isLoading={loadingCities}
+                      isDisabled={!selectedState}
                     />
                   )}
                 />
@@ -314,24 +429,44 @@ function Register() {
                 <InputContainer>
                   <InputAndLabelBox>
                     <Label htmlFor="crp">CRP</Label>
-                        <Controller
-                          name="crp"
-                          control={control}
-                          render={({ field }) => (
-                            <StyledMaskInput
-                              id="crp"
-                              mask="00/000000"
-                              placeholder="00/000000"
-                              value={field.value || ""}
-                              onAccept={(value) => field.onChange(value)}
-                              onBlur={field.onBlur}
-                              ref={field.ref}
-                            />
-                          )}
+                    <Controller
+                      name="crp"
+                      control={control}
+                      render={({ field }) => (
+                        <StyledMaskInput
+                          id="crp"
+                          mask="00/000000"
+                          placeholder="00/000000"
+                          value={field.value || ""}
+                          onAccept={(value) => field.onChange(value)}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
                         />
+                      )}
+                    />
                   </InputAndLabelBox>
                   {errors.crp && <Message>{errors.crp.message}</Message>}
                 </InputContainer>
+
+                <InputContainer>
+                  <InputAndLabelBox>
+                    <Label htmlFor="valuePerAppointment">
+                      VALOR POR CONSULTA (R$)
+                    </Label>
+                    <Input
+                      id="valuePerAppointment"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="150.00"
+                      {...register("valuePerAppointment")}
+                    />
+                  </InputAndLabelBox>
+                  {errors.valuePerAppointment && (
+                    <Message>{errors.valuePerAppointment.message}</Message>
+                  )}
+                </InputContainer>
+
                 <FullWidthInputContainer>
                   <InputAndLabelBox>
                     <Label htmlFor="approaches">ABORDAGEM</Label>
@@ -345,6 +480,7 @@ function Register() {
                           styles={customStyles}
                           isMulti
                           placeholder="Selecione..."
+                          isLoading={loadingApproaches}
                         />
                       )}
                     />
@@ -356,29 +492,56 @@ function Register() {
               </>
             )}
 
-           {userType === "psychologist" && (<>
-            <FullWidthInputContainer>
-              <InputAndLabelBox>
-                <Label htmlFor="specialties">ESPECIALIDADES</Label>
-                <Controller
-                  name="specialties"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      {...field}
-                      options={specialtyOptions}
-                      styles={customStyles}
-                      isMulti
-                      placeholder="Selecione..."
+            {userType === "psychologist" && (
+              <>
+                <FullWidthInputContainer>
+                  <InputAndLabelBox>
+                    <Label htmlFor="specialties">ESPECIALIDADES</Label>
+                    <Controller
+                      name="specialties"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          {...field}
+                          options={specialtyOptions}
+                          styles={customStyles}
+                          isMulti
+                          placeholder="Selecione..."
+                          isLoading={loadingSpecialties}
+                        />
+                      )}
                     />
+                  </InputAndLabelBox>
+                  {errors.specialties && (
+                    <Message>{errors.specialties.message}</Message>
                   )}
-                />
-              </InputAndLabelBox>
-              {errors.specialties && <Message>{errors.specialties.message}</Message>}
-            </FullWidthInputContainer>
-           </>)}
+                </FullWidthInputContainer>
 
-           <FullWidthInputContainer>
+                <FullWidthInputContainer>
+                  <InputAndLabelBox>
+                    <Label htmlFor="audiences">PÚBLICO-ALVO</Label>
+                    <Controller
+                      name="audiences"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          {...field}
+                          options={audiencesOptions}
+                          styles={customStyles}
+                          isMulti
+                          placeholder="Selecione..."
+                        />
+                      )}
+                    />
+                  </InputAndLabelBox>
+                  {errors.audiences && (
+                    <Message>{errors.audiences.message}</Message>
+                  )}
+                </FullWidthInputContainer>
+              </>
+            )}
+
+            <FullWidthInputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="email">E-MAIL</Label>
                 <Input
@@ -409,12 +572,23 @@ function Register() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="password">SENHA</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Crie uma senha forte"
-                  {...register("password")}
-                />
+                <PasswordInputWrapper>
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Crie uma senha forte"
+                    {...register("password")}
+                  />
+                  <PasswordToggleIcon
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={
+                      showPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </PasswordToggleIcon>
+                </PasswordInputWrapper>
               </InputAndLabelBox>
               {errors.password && <Message>{errors.password.message}</Message>}
             </InputContainer>
@@ -422,14 +596,27 @@ function Register() {
             <InputContainer>
               <InputAndLabelBox>
                 <Label htmlFor="confirmedPassword">CONFIRME SUA SENHA</Label>
-                <Input
-                  id="confirmedPassword"
-                  type="password"
-                  placeholder="Repita sua senha"
-                  {...register("confirmedPassword")}
-                />
+                <PasswordInputWrapper>
+                  <Input
+                    id="confirmedPassword"
+                    type={showConfirmedPassword ? "text" : "password"}
+                    placeholder="Repita sua senha"
+                    {...register("confirmedPassword")}
+                  />
+                  <PasswordToggleIcon
+                    type="button"
+                    onClick={() =>
+                      setShowConfirmedPassword(!showConfirmedPassword)
+                    }
+                    aria-label={
+                      showConfirmedPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
+                  >
+                    {showConfirmedPassword ? <VisibilityOff /> : <Visibility />}
+                  </PasswordToggleIcon>
+                </PasswordInputWrapper>
               </InputAndLabelBox>
-              {errors.confirmedPassword && ( 
+              {errors.confirmedPassword && (
                 <Message>{errors.confirmedPassword.message}</Message>
               )}
             </InputContainer>
@@ -446,9 +633,9 @@ function Register() {
           </Form>
           <TextButtonContainer>
             <Text>Já tem uma conta?</Text>
-          <TextButton onClick={() => navigate("/Login")}>
-          Entre por aqui
-          </TextButton>
+            <TextButton onClick={() => navigate("/Login")}>
+              Entre por aqui
+            </TextButton>
           </TextButtonContainer>
         </FormContainer>
       </Container>

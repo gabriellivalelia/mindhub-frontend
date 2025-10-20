@@ -1,11 +1,9 @@
 import { z } from "zod";
 
-// CPF validation helper: strips non-digits, checks length and verifies checksum digits
 function isValidCPF(cpf) {
   if (!cpf) return false;
   const onlyDigits = cpf.replace(/\D/g, "");
   if (onlyDigits.length !== 11) return false;
-  // Reject known invalid CPFs with all equal digits
   if (/^(\d)\1{10}$/.test(onlyDigits)) return false;
 
   const calcCheckDigit = (digits) => {
@@ -123,6 +121,24 @@ export const CreatePsychologistFormSchema = z
         .nonempty("O CRP é obrigatório!")
         .regex(/^\d{2}\/\d{4,6}$/, "Formato de CRP inválido. Use 00/000000")
     ),
+    valuePerAppointment: z
+      .union([z.string(), z.number()])
+      .refine((v) => v !== null && v !== undefined && v !== "", {
+        message: "O valor por consulta é obrigatório!",
+      })
+      .transform((v) => {
+        const num = typeof v === "string" ? parseFloat(v) : v;
+        if (isNaN(num)) {
+          throw new Error("Digite um valor numérico válido!");
+        }
+        return num;
+      })
+      .refine((v) => v > 0, {
+        message: "O valor por consulta deve ser maior que zero!",
+      })
+      .refine((v) => v >= 0.01, {
+        message: "O valor mínimo é R$ 0,01",
+      }),
     approaches: z.preprocess(
       (v) => {
         if (v == null) return [];
@@ -144,6 +160,17 @@ export const CreatePsychologistFormSchema = z
         return [];
       },
       z.array(z.string()).min(1, "Selecione ao menos uma especialidade")
+    ),
+    audiences: z.preprocess(
+      (v) => {
+        if (v == null) return [];
+        if (Array.isArray(v))
+          return v.map((item) =>
+            typeof item === "object" ? (item.value ?? item.label ?? "") : item
+          );
+        return [];
+      },
+      z.array(z.string()).min(1, "Selecione ao menos um público-alvo")
     ),
     description: z.string().optional(),
   })
