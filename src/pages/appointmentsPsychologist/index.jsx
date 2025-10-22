@@ -21,12 +21,12 @@ import {
   FilterTitle,
   SectionTitle,
   SectionContainer,
+  LabelSmall,
 } from "./styles";
 
 import { SubHeader } from "../../components";
 import Colors from "../../globalConfigs/globalStyles/colors";
 import { FontSizes } from "../../globalConfigs";
-import { appointmentsPsychologist } from "./appointmentsPsychologist";
 import Schedule from "@mui/icons-material/Schedule";
 import Brightness1 from "@mui/icons-material/Brightness1";
 import FilterAlt from "@mui/icons-material/FilterAlt";
@@ -39,11 +39,18 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import PriceCheck from "@mui/icons-material/PriceCheck";
 import TaskAlt from "@mui/icons-material/TaskAlt";
 import CancelIcon from "@mui/icons-material/Cancel";
-import { useNavigate } from "react-router-dom";
+import CircularProgress from "@mui/material/CircularProgress";
+import {
+  useAppointments,
+  usePsychologistConfirmPayment,
+} from "../../services/useAppointments";
+import { usePatients } from "../../services/usePatients";
+import { useToastStore } from "../../stores/useToastStore";
 
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import { formatDateTime, parseServerDateToLocal } from "../../utils/formatDate";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Select from "@mui/material/Select";
@@ -51,17 +58,47 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Pagination from "@mui/material/Pagination";
 
+const STATUS_MAP = {
+  waiting_for_payment: "Aguardando pagamento",
+  pending_confirmation: "Aguardando confirmação",
+  confirmed: "Confirmada",
+  completed: "Realizada",
+  canceled: "Cancelada",
+};
+
 function PsychologistAppointments() {
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [pageSize, setPageSize] = React.useState(5);
   const [page, setPage] = React.useState(1);
-  const [dateFilter, setDateFilter] = React.useState("");
+  const [startDate, setStartDate] = React.useState("");
+  const [endDate, setEndDate] = React.useState("");
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("");
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [selectedConsultation, setSelectedConsultation] = React.useState(null);
   const menuOpen = Boolean(anchorEl);
-  const navigate = useNavigate();
+
+  const addToast = useToastStore((state) => state.addToast);
+  const confirmPaymentMutation = usePsychologistConfirmPayment();
+
+  const {
+    data: appointmentsData,
+    isLoading,
+    error,
+  } = useAppointments({
+    page: page,
+    size: pageSize,
+    start_date: startDate,
+    end_date: endDate,
+    status: statusFilter,
+  });
+
+  // Buscar todos os pacientes para ter disponível nos mapeamentos
+  const { data: patientsData } = usePatients({
+    page: 1,
+    size: 1000, // Buscar todos para ter disponível
+  });
+
   const handleMenuOpen = (e, consultation) => {
     setAnchorEl(e.currentTarget);
     setSelectedConsultation(consultation);
@@ -72,9 +109,12 @@ function PsychologistAppointments() {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "Agendada":
+    const normalizedStatus = STATUS_MAP[status] || status;
+    switch (normalizedStatus) {
+      case "Aguardando pagamento":
         return Colors.ORANGE;
+      case "Aguardando confirmação":
+        return Colors.YELLOW;
       case "Confirmada":
         return Colors.GREEN;
       case "Cancelada":
@@ -86,25 +126,68 @@ function PsychologistAppointments() {
     }
   };
 
-  const applyFilters = () => {
+  const clearFilters = () => {
+    setStartDate("");
+    setEndDate("");
+    setSearchTerm("");
+    setStatusFilter("");
     setPage(1);
-    setIsFilterOpen(false);
   };
 
-  const clearFilters = () => {
-    setDateFilter("");
-    setSearchTerm("");
-    setPage(1);
+  const handleConfirmPayment = async (appointmentId) => {
+    try {
+      await confirmPaymentMutation.mutateAsync(appointmentId);
+      addToast("Pagamento confirmado com sucesso!", "success");
+      handleMenuClose();
+    } catch (error) {
+      console.error("Error confirming payment:", error);
+      addToast(
+        error.response?.data?.message ||
+          "Erro ao confirmar pagamento. Tente novamente.",
+        "error"
+      );
+    }
   };
+
+  // Mapear dados da API para o formato esperado pelo componente
+  const mappedAppointments = React.useMemo(() => {
+    if (!appointmentsData?.items) return [];
+
+    // Criar mapa de pacientes para acesso rápido por ID
+    const patientsMap = (patientsData?.items || []).reduce((acc, patient) => {
+      acc[patient.id] = patient;
+      return acc;
+    }, {});
+
+    return appointmentsData.items.map((appointment) => {
+      const patient = patientsMap[appointment.patient_id] || {};
+
+      return {
+        id: appointment.id,
+        datetime: appointment.date,
+        patient: patient.name || "Paciente não encontrado",
+        patientPicture: patient.profile_picture?.src || "/default-avatar.png",
+        status: STATUS_MAP[appointment.status] || appointment.status,
+        rawStatus: appointment.status,
+        psychologist_id: appointment.psychologist_id,
+        patient_id: appointment.patient_id,
+        price: appointment.pix_payment?.value || 0,
+        // Informações adicionais do paciente
+        cpf: patient.cpf,
+        phone_number: patient.phone_number,
+        birth_date: patient.birth_date,
+        gender: patient.gender,
+      };
+    });
+  }, [appointmentsData, patientsData]);
 
   const filteredAppointments = React.useMemo(() => {
     const term = (searchTerm || "").trim().toLowerCase();
-    return appointmentsPsychologist.filter((a) => {
+    return mappedAppointments.filter((a) => {
       if (term && !a.patient.toLowerCase().includes(term)) return false;
-
       return true;
     });
-  }, [searchTerm]);
+  }, [mappedAppointments, searchTerm]);
 
   return (
     <PageContainer>
@@ -134,56 +217,79 @@ function PsychologistAppointments() {
           <Box sx={{ width: 320, padding: 2 }} role="presentation">
             <FilterTitle>Filtros</FilterTitle>
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <FormControl
-                fullWidth
-                size="small"
-                sx={{
-                  "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-                    { borderColor: Colors.ORANGE },
-                  "& .MuiInputLabel-root.Mui-focused": { color: Colors.ORANGE },
-                }}
-              >
-                <InputLabel id="status-filter-label">Status</InputLabel>
-                <Select
-                  labelId="status-filter-label"
-                  id="status-filter"
-                  value={statusFilter}
-                  label="Status"
-                  onChange={(e) => setStatusFilter(e.target.value)}
+              <div>
+                <LabelSmall>Status</LabelSmall>
+                <FormControl
+                  fullWidth
+                  size="small"
                   sx={{
-                    height: 36,
-                    "& .MuiSvgIcon-root": { color: Colors.ORANGE },
+                    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                      { borderColor: Colors.ORANGE },
                   }}
                 >
-                  <MenuItem value="">Todos</MenuItem>
-                  <MenuItem value="Agendada">Agendada</MenuItem>
-                  <MenuItem value="Confirmada">Confirmada</MenuItem>
-                  <MenuItem value="Aguardando pagamento">
-                    Aguardando pagamento
-                  </MenuItem>
-                  <MenuItem value="Realizada">Realizada</MenuItem>
-                  <MenuItem value="Cancelada">Cancelada</MenuItem>
-                </Select>
-              </FormControl>
+                  <Select
+                    id="status-filter"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    displayEmpty
+                    sx={{
+                      height: 36,
+                      "& .MuiSvgIcon-root": { color: Colors.ORANGE },
+                    }}
+                  >
+                    <MenuItem value="">Todos</MenuItem>
+                    <MenuItem value="waiting_for_payment">
+                      Aguardando pagamento
+                    </MenuItem>
+                    <MenuItem value="pending_confirmation">
+                      Aguardando confirmação
+                    </MenuItem>
+                    <MenuItem value="confirmed">Confirmada</MenuItem>
+                    <MenuItem value="completed">Realizada</MenuItem>
+                    <MenuItem value="canceled">Cancelada</MenuItem>
+                  </Select>
+                </FormControl>
+              </div>
 
-              <TextField
-                label="Data"
-                type="date"
-                size="small"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                onKeyDown={(e) => e.preventDefault()}
-                InputLabelProps={{ shrink: true }}
-                sx={{
-                  "& .MuiInputBase-input": {
-                    fontSize: FontSizes.SMALL,
-                    cursor: "pointer",
-                  },
-                  "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-                    { borderColor: Colors.ORANGE },
-                  "& .MuiInputLabel-root.Mui-focused": { color: Colors.ORANGE },
-                }}
-              />
+              <div>
+                <LabelSmall>Data de início</LabelSmall>
+                <TextField
+                  type="date"
+                  size="small"
+                  fullWidth
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  onKeyDown={(e) => e.preventDefault()}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      fontSize: FontSizes.SMALL,
+                      cursor: "pointer",
+                    },
+                    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                      { borderColor: Colors.ORANGE },
+                  }}
+                />
+              </div>
+
+              <div>
+                <LabelSmall>Data de fim</LabelSmall>
+                <TextField
+                  type="date"
+                  size="small"
+                  fullWidth
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  onKeyDown={(e) => e.preventDefault()}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      fontSize: FontSizes.SMALL,
+                      cursor: "pointer",
+                    },
+                    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                      { borderColor: Colors.ORANGE },
+                  }}
+                />
+              </div>
 
               <Box
                 sx={{
@@ -203,7 +309,7 @@ function PsychologistAppointments() {
                 >
                   Limpar
                 </Button>
-                <Button
+                {/* <Button
                   variant="contained"
                   onClick={applyFilters}
                   sx={{
@@ -214,7 +320,7 @@ function PsychologistAppointments() {
                   }}
                 >
                   Aplicar
-                </Button>
+                </Button> */}
               </Box>
             </Stack>
           </Box>
@@ -222,112 +328,151 @@ function PsychologistAppointments() {
 
         <ConsultationsContainer>
           <FullWidth>
-            <Stack alignItems="flex-start" spacing={2}>
-              {filteredAppointments
-                ?.slice((page - 1) * pageSize, page * pageSize)
-                .map((consultation) => (
-                  <ConsultationCard key={consultation.id}>
-                    <PatientPictureContainer>
-                      <PatientPicture
-                        src={consultation.patientPicture}
-                        alt={consultation.patient}
-                      />
-                    </PatientPictureContainer>
-                    <ConsultationInfo>
-                      <PatientName>{consultation.patient}</PatientName>
-                      <ConsultationDateTime>
-                        <Schedule sx={{ fontSize: FontSizes.MEDIUM }} />{" "}
-                        {new Date(consultation.datetime).toLocaleString()}
-                      </ConsultationDateTime>
-                    </ConsultationInfo>
-                    <ConsultationStatus status={consultation.status}>
-                      <Brightness1
-                        sx={{
-                          fontSize: FontSizes.SMALLEST,
-                          color: getStatusColor(consultation.status),
-                        }}
-                      />{" "}
-                      {consultation.status}
-                    </ConsultationStatus>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, consultation)}
-                      sx={{ color: Colors.GREY, p: "6px" }}
-                      aria-controls={
-                        menuOpen ? "psychologist-appointment-menu" : undefined
-                      }
-                      aria-haspopup="true"
-                      aria-expanded={menuOpen ? "true" : undefined}
-                    >
-                      <MoreHoriz />
-                    </IconButton>
-                  </ConsultationCard>
-                ))}
-
-              <RowBetween>
-                <Pagination
-                  count={Math.max(
-                    1,
-                    Math.ceil((filteredAppointments?.length || 0) / pageSize)
-                  )}
-                  page={page}
-                  onChange={(e, value) => setPage(value)}
+            {isLoading ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: "200px",
+                }}
+              >
+                <CircularProgress sx={{ color: Colors.ORANGE }} />
+              </Box>
+            ) : error ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: "200px",
+                  flexDirection: "column",
+                  gap: 2,
+                }}
+              >
+                <p style={{ color: Colors.RED }}>
+                  Erro ao carregar consultas: {error.message}
+                </p>
+                <Button
+                  variant="outlined"
+                  onClick={() => window.location.reload()}
                   sx={{
-                    "& .MuiPaginationItem-root.Mui-selected": {
-                      backgroundColor: Colors.ORANGE,
-                      color: Colors.WHITE,
-                    },
-                  }}
-                />
-
-                <FormControl
-                  sx={{
-                    minWidth: 160,
-                    "& .MuiInputLabel-root.Mui-focused": {
-                      color: Colors.ORANGE,
-                    },
-                    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-                      { borderColor: Colors.ORANGE },
+                    borderColor: Colors.ORANGE,
+                    color: Colors.ORANGE,
+                    "&:hover": { borderColor: Colors.LIGHT_ORANGE },
                   }}
                 >
-                  <InputLabel id="page-size-label">
-                    Linhas por página
-                  </InputLabel>
-                  <Select
-                    size="small"
+                  Tentar novamente
+                </Button>
+              </Box>
+            ) : (
+              <Stack alignItems="flex-start" spacing={2}>
+                {filteredAppointments
+                  ?.slice((page - 1) * pageSize, page * pageSize)
+                  .map((consultation) => (
+                    <ConsultationCard key={consultation.id}>
+                      <PatientPictureContainer>
+                        <PatientPicture
+                          src={consultation.patientPicture}
+                          alt={consultation.patient}
+                        />
+                      </PatientPictureContainer>
+                      <ConsultationInfo>
+                        <PatientName>{consultation.patient}</PatientName>
+                        <ConsultationDateTime>
+                          <Schedule sx={{ fontSize: FontSizes.MEDIUM }} />{" "}
+                          {formatDateTime(consultation.datetime)}
+                        </ConsultationDateTime>
+                      </ConsultationInfo>
+                      <ConsultationStatus status={consultation.status}>
+                        <Brightness1
+                          sx={{
+                            fontSize: FontSizes.SMALLEST,
+                            color: getStatusColor(consultation.status),
+                          }}
+                        />{" "}
+                        {consultation.status}
+                      </ConsultationStatus>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleMenuOpen(e, consultation)}
+                        sx={{ color: Colors.GREY, p: "6px" }}
+                        aria-controls={
+                          menuOpen ? "psychologist-appointment-menu" : undefined
+                        }
+                        aria-haspopup="true"
+                        aria-expanded={menuOpen ? "true" : undefined}
+                      >
+                        <MoreHoriz />
+                      </IconButton>
+                    </ConsultationCard>
+                  ))}
+
+                <RowBetween>
+                  <Pagination
+                    count={Math.max(
+                      1,
+                      Math.ceil((filteredAppointments?.length || 0) / pageSize)
+                    )}
+                    page={page}
+                    onChange={(e, value) => setPage(value)}
                     sx={{
-                      height: 36,
-                      "& .MuiSvgIcon-root": { color: Colors.ORANGE },
-                    }}
-                    label="Linhas por página"
-                    onChange={(event) => {
-                      setPageSize(Number(event.target.value));
-                      setPage(1);
-                    }}
-                    value={pageSize}
-                    id="page-size"
-                    labelId="page-size-label"
-                    MenuProps={{
-                      PaperProps: {
-                        sx: {
-                          "& .MuiMenuItem-root.Mui-selected": {
-                            backgroundColor: Colors.ORANGE,
-                            color: Colors.WHITE,
-                          },
-                          "& .MuiMenuItem-root.Mui-selected:hover": {
-                            backgroundColor: Colors.ORANGE,
-                          },
-                        },
+                      "& .MuiPaginationItem-root.Mui-selected": {
+                        backgroundColor: Colors.ORANGE,
+                        color: Colors.WHITE,
                       },
                     }}
+                  />
+
+                  <FormControl
+                    sx={{
+                      minWidth: 160,
+                      "& .MuiInputLabel-root.Mui-focused": {
+                        color: Colors.ORANGE,
+                      },
+                      "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                        { borderColor: Colors.ORANGE },
+                    }}
                   >
-                    <MenuItem value={5}>5</MenuItem>
-                    <MenuItem value={10}>10</MenuItem>
-                    <MenuItem value={25}>25</MenuItem>
-                  </Select>
-                </FormControl>
-              </RowBetween>
-            </Stack>
+                    <InputLabel id="page-size-label">
+                      Linhas por página
+                    </InputLabel>
+                    <Select
+                      size="small"
+                      sx={{
+                        height: 36,
+                        "& .MuiSvgIcon-root": { color: Colors.ORANGE },
+                      }}
+                      label="Linhas por página"
+                      onChange={(event) => {
+                        setPageSize(Number(event.target.value));
+                        setPage(1);
+                      }}
+                      value={pageSize}
+                      id="page-size"
+                      labelId="page-size-label"
+                      MenuProps={{
+                        PaperProps: {
+                          sx: {
+                            "& .MuiMenuItem-root.Mui-selected": {
+                              backgroundColor: Colors.ORANGE,
+                              color: Colors.WHITE,
+                            },
+                            "& .MuiMenuItem-root.Mui-selected:hover": {
+                              backgroundColor: Colors.ORANGE,
+                            },
+                          },
+                        },
+                      }}
+                    >
+                      <MenuItem value={5}>5</MenuItem>
+                      <MenuItem value={10}>10</MenuItem>
+                      <MenuItem value={25}>25</MenuItem>
+                    </Select>
+                  </FormControl>
+                </RowBetween>
+              </Stack>
+            )}
           </FullWidth>
         </ConsultationsContainer>
         <Menu
@@ -338,25 +483,10 @@ function PsychologistAppointments() {
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
           transformOrigin={{ vertical: "top", horizontal: "right" }}
         >
-          {selectedConsultation?.status === "Aguardando pagamento" && (
+          {selectedConsultation?.rawStatus === "pending_confirmation" && (
             <MenuItem
-              onClick={() => {
-                handleMenuClose();
-                navigate("/payment", {
-                  state: {
-                    psychologist: {
-                      name: selectedConsultation.patient,
-                      picture: selectedConsultation.patientPicture,
-                      crp: selectedConsultation.crp || "",
-                      rating: selectedConsultation.rating || 4.5,
-                      specialties: selectedConsultation.specialties || [],
-                      approaches: selectedConsultation.approaches || [],
-                    },
-                    slot: { datetime: selectedConsultation.datetime },
-                    price: selectedConsultation.price || 150,
-                  },
-                });
-              }}
+              onClick={() => handleConfirmPayment(selectedConsultation.id)}
+              disabled={confirmPaymentMutation.isPending}
             >
               <ListItemIcon>
                 <PriceCheck
@@ -364,28 +494,18 @@ function PsychologistAppointments() {
                   fontSize="small"
                 />
               </ListItemIcon>
-              Confirmar pagamento
+              {confirmPaymentMutation.isPending
+                ? "Confirmando..."
+                : "Confirmar pagamento"}
             </MenuItem>
           )}
-          {selectedConsultation?.status === "Confirmada" &&
-            new Date(selectedConsultation?.datetime) < new Date() && (
+          {selectedConsultation?.rawStatus === "confirmed" &&
+            parseServerDateToLocal(selectedConsultation?.datetime) <
+              new Date() && (
               <MenuItem
                 onClick={() => {
                   handleMenuClose();
-                  navigate("/payment", {
-                    state: {
-                      psychologist: {
-                        name: selectedConsultation.patient,
-                        picture: selectedConsultation.patientPicture,
-                        crp: selectedConsultation.crp || "",
-                        rating: selectedConsultation.rating || 4.5,
-                        specialties: selectedConsultation.specialties || [],
-                        approaches: selectedConsultation.approaches || [],
-                      },
-                      slot: { datetime: selectedConsultation.datetime },
-                      price: selectedConsultation.price || 150,
-                    },
-                  });
+                  console.log("Marcar como concluída", selectedConsultation);
                 }}
               >
                 <ListItemIcon>

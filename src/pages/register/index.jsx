@@ -7,6 +7,7 @@ import PsychologyIcon from "@mui/icons-material/Psychology";
 import RecordVoiceOver from "@mui/icons-material/RecordVoiceOver";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { useToastStore } from "../../stores/useToastStore";
 
 import {
   CreatePacientFormSchema,
@@ -51,9 +52,9 @@ import {
   useRegisterPsychologist,
   useStates,
   useCitiesByState,
-  useSpecialties,
-  useApproaches,
 } from "../../services/registrationService";
+import { useSpecialties } from "../../services/useSpecialties";
+import { useApproaches } from "../../services/useApproaches";
 import { authService } from "../../services/authService";
 
 const customStyles = {
@@ -113,6 +114,7 @@ const customStyles = {
 
 function Register() {
   const navigate = useNavigate();
+  const addToast = useToastStore((state) => state.addToast);
   const searchParams = new URLSearchParams(window.location.search);
   const typeFromUrl = searchParams.get("type");
 
@@ -132,9 +134,10 @@ function Register() {
   const { data: citiesData, isLoading: loadingCities } =
     useCitiesByState(selectedState);
   const { data: specialtiesData, isLoading: loadingSpecialties } =
-    useSpecialties();
-  const { data: approachesData, isLoading: loadingApproaches } =
-    useApproaches();
+    useSpecialties({ size: 100 });
+  const { data: approachesData, isLoading: loadingApproaches } = useApproaches({
+    size: 100,
+  });
 
   const stateOptions =
     statesData?.items?.map((state) => ({
@@ -240,30 +243,40 @@ function Register() {
       );
 
       if (loginResult.success) {
-        alert("Cadastro realizado com sucesso! Você já está logado.");
+        addToast(
+          "Cadastro realizado com sucesso! Você já está logado.",
+          "success"
+        );
         navigate("/");
       } else {
-        alert(
-          "Cadastro realizado com sucesso! Faça login para acessar sua conta."
+        addToast(
+          "Cadastro realizado com sucesso! Faça login para acessar sua conta.",
+          "info"
         );
         navigate("/login");
       }
     } catch (error) {
       console.error("Erro ao criar usuário:", error);
 
+      let errorMessage =
+        "Erro ao realizar cadastro. Por favor, tente novamente.";
+
       if (error.data?.errors) {
-        setRegisterError(error.data.errors?.join("\n"));
+        if (Array.isArray(error.data.errors)) {
+          errorMessage = error.data.errors.join(", ");
+        } else if (typeof error.data.errors === "string") {
+          errorMessage = error.data.errors;
+        }
       } else if (error.message) {
-        setRegisterError(error.message);
+        errorMessage = error.message;
       } else if (error.data?.detail) {
-        setRegisterError(error.data.detail);
+        errorMessage = error.data.detail;
       } else if (error.response?.data?.detail) {
-        setRegisterError(error.response.data.detail);
-      } else {
-        setRegisterError(
-          "Erro ao realizar cadastro. Por favor, tente novamente."
-        );
+        errorMessage = error.response.data.detail;
       }
+
+      setRegisterError(errorMessage);
+      addToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -271,7 +284,7 @@ function Register() {
 
   return (
     <PageContainer>
-      <SubHeader text="Cadastre-se!" />
+      <SubHeader text="Cadastre-se" />
       <Container>
         <FormContainer>
           <ToggleContainer>

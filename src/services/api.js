@@ -8,6 +8,9 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  paramsSerializer: {
+    indexes: null, // Remove índices dos arrays (transforma ?ids[0]=1&ids[1]=2 em ?ids=1&ids=2)
+  },
 });
 
 // // Flag para evitar múltiplas tentativas de refresh simultâneas
@@ -59,63 +62,6 @@ api.interceptors.response.use(
         message: "Falha na conexão com o servidor. Verifique sua internet.",
       });
     }
-
-    // // Status 401 (Não autorizado) - tentar refresh do token
-    // if (error.response.status === 401 && !originalRequest._retry) {
-    //   if (isRefreshing) {
-    //     // Já estamos tentando refresh, enfileirar esta requisição
-    //     return new Promise((resolve, reject) => {
-    //       failedQueue.push({ resolve, reject });
-    //     })
-    //       .then((token) => {
-    //         originalRequest.headers.Authorization = `Bearer ${token}`;
-    //         return api(originalRequest);
-    //       })
-    //       .catch((err) => {
-    //         return Promise.reject(err);
-    //       });
-    //   }
-
-    //   originalRequest._retry = true;
-    //   isRefreshing = true;
-
-    //   try {
-    //     // Tentar refresh do token (adapte este endpoint conforme sua API)
-    //     const response = await axios.post(
-    //       `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/auth/refresh`,
-    //       {},
-    //       {
-    //         withCredentials: true, // Envia cookies (refreshToken)
-    //       }
-    //     );
-
-    //     const { accessToken } = response.data;
-    //     setToken(accessToken);
-
-    //     // Processar fila de requisições que aguardavam o refresh
-    //     processQueue(null, accessToken);
-
-    //     // Repetir requisição original com novo token
-    //     originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-    //     return api(originalRequest);
-    //   } catch (refreshError) {
-    //     // Falha no refresh - fazer logout
-    //     processQueue(refreshError, null);
-    //     removeToken();
-
-    //     // Redirecionar para login (se não estiver lá)
-    //     if (
-    //       window.location.pathname !== "/login" &&
-    //       window.location.pathname !== "/"
-    //     ) {
-    //       window.location.href = "/login";
-    //     }
-
-    //     return Promise.reject(refreshError);
-    //   } finally {
-    //     isRefreshing = false;
-    //   }
-    // }
 
     // Status 403 (Proibido) - sem permissão
     if (error.response.status === 403) {

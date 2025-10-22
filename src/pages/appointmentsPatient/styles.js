@@ -193,9 +193,8 @@ export const ScheduleNewAppointmentButton = styled.button`
   }
 `;
 
-// helpers
 export const FilterTitle = styled.h3`
-  color: ${Colors.DARK_GRAY};
+  color: ${Colors.DARK_GREY};
   margin: 0;
 `;
 
@@ -208,4 +207,12 @@ export const RowBetween = styled.div`
   justify-content: space-between;
   align-items: center;
   width: 100%;
+`;
+
+export const LabelSmall = styled.label`
+  font-size: ${FontSizes.SMALL};
+  color: ${Colors.DARK_GREY};
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  display: block;
 `;

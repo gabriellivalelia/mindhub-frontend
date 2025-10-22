@@ -198,3 +198,11 @@ export const SectionContainer = styled.div`
   flex-direction: column;
   gap: 0.6rem;
 `;
+
+export const LabelSmall = styled.label`
+  font-size: ${FontSizes.SMALL};
+  color: ${Colors.DARK_GREY};
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  display: block;
+`;

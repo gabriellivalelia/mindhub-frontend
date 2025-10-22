@@ -14,9 +14,8 @@ export const ScheduleWrapper = styled.div`
   align-items: center;
   justify-content: center;
 
-  // Media query para telas menores
   @media (max-width: ${BreakPoints.MOBILE}) {
-    padding: 10px; // Reduz o padding geral
+    padding: 10px;
   }
 `;
 
@@ -24,7 +23,7 @@ export const ScheduleGrid = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-width: 0; // Ajuda a prevenir overflow em containers flex
+  min-width: 0;
 `;
 
 export const ArrowButton = styled.button`
@@ -40,7 +39,7 @@ export const ArrowButton = styled.button`
   }
 
   @media (max-width: ${BreakPoints.MOBILE}) {
-    padding: 0 5px; // Reduz o padding das setas
+    padding: 0 5px;
   }
 `;
 
@@ -70,7 +69,7 @@ export const DayName = styled.div`
   text-transform: capitalize;
 
   @media (max-width: ${BreakPoints.MOBILE}) {
-    font-size: ${FontSizes.SMALLEST}; // Reduz a fonte do dia
+    font-size: ${FontSizes.SMALLEST};
   }
 `;
 
@@ -81,7 +80,7 @@ export const DayNumber = styled.div`
   white-space: nowrap;
 
   @media (max-width: ${BreakPoints.MOBILE}) {
-    font-size: ${FontSizes.SMALLEST}; // Reduz a fonte da data
+    font-size: ${FontSizes.SMALLEST};
   }
 `;
 
@@ -105,10 +104,10 @@ export const DayColumn = styled.div`
   gap: 10px;
   min-height: 200px;
   margin: 0 4px;
-  min-width: 0; // <-- ALTERADO: Permite que a coluna encolha
+  min-width: 0;
 
   @media (max-width: ${BreakPoints.MOBILE}) {
-    margin: 0 2px; // Reduz a margem entre as colunas
+    margin: 0 2px;
   }
 `;
 
@@ -117,9 +116,9 @@ export const TimeSlot = styled.div`
   font-size: ${FontSizes.SMALL};
   font-weight: 500;
   text-align: center;
-  width: 100%; // <-- ALTERADO: Ocupa 100% da coluna pai
-  padding: 10px 5px; // <-- ALTERADO: Padding ajustado para ser mais flexível
-  white-space: nowrap; // <-- ADICIONADO: Impede que "09:00" quebre a linha
+  width: 100%;
+  padding: 10px 5px;
+  white-space: nowrap;
 
   color: ${Colors.GREY};
   cursor: default;
@@ -147,7 +146,7 @@ export const TimeSlot = styled.div`
     `}
   
   @media (max-width: ${BreakPoints.MOBILE}) {
-    font-size: ${FontSizes.SMALLEST}; // Reduz a fonte do horário
+    font-size: ${FontSizes.SMALLEST};
   }
 `;
 
@@ -157,6 +156,6 @@ export const ScrollBar = styled.div`
   top: 0;
   width: 8px;
   height: 50%;
-  background-color: ${Colors.LIGHT_GREY}; /* scrollbar neutral tint */
+  background-color: transparent;
   border-radius: 4px;
 `;

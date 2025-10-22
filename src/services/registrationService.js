@@ -119,31 +119,3 @@ export function useCitiesByState(stateId) {
     staleTime: 30 * 60 * 1000, // 30 minutos
   });
 }
-
-/**
- * Hook para buscar especialidades
- */
-export function useSpecialties() {
-  return useQuery({
-    queryKey: ["specialties"],
-    queryFn: async () => {
-      const response = await api.get("/specialties", { params: { size: 100 } });
-      return response.data;
-    },
-    staleTime: 30 * 60 * 1000, // 30 minutos
-  });
-}
-
-/**
- * Hook para buscar abordagens
- */
-export function useApproaches() {
-  return useQuery({
-    queryKey: ["approaches"],
-    queryFn: async () => {
-      const response = await api.get("/approaches", { params: { size: 100 } });
-      return response.data;
-    },
-    staleTime: 30 * 60 * 1000, // 30 minutos
-  });
-}

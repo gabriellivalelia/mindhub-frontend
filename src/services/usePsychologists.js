@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "./api";
-import { useAuthStore } from "../stores/useAuthStore";
+import { useCurrentUser } from "./useCurrentUser";
 
 /**
  * Hook para buscar perfil do psicólogo autenticado
  */
 export function useCurrentPsychologist() {
-  const user = useAuthStore((state) => state.user);
+  const { data: user } = useCurrentUser();
   const psychologistId = user?.id;
 
   return useQuery({

@@ -20,7 +20,9 @@ import {
   Info,
 } from "./styles";
 import { SubHeader } from "../../components";
-import { homeUpcoming } from "./homeData";
+import { useAppointments } from "../../services/useAppointments";
+import { usePsychologists } from "../../services/usePsychologists";
+import { usePatients } from "../../services/usePatients";
 import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -30,32 +32,132 @@ import ScheduleIcon from "@mui/icons-material/Schedule";
 import CancelIcon from "@mui/icons-material/Cancel";
 import Colors from "../../globalConfigs/globalStyles/colors";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../stores/useAuthStore";
+import { useCurrentUser } from "../../services/useCurrentUser";
 import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import Brightness1 from "@mui/icons-material/Brightness1";
 import { FontSizes } from "../../globalConfigs";
-import { Divider } from "antd";
+import CircularProgress from "@mui/material/CircularProgress";
+import Box from "@mui/material/Box";
+import {
+  formatDateTime,
+  formatTime,
+  parseServerDateToLocal,
+} from "../../utils/formatDate";
+
+const STATUS_MAP = {
+  waiting_for_payment: "Aguardando pagamento",
+  pending_confirmation: "Aguardando confirmação",
+  confirmed: "Confirmada",
+  completed: "Realizada",
+  canceled: "Cancelada",
+};
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case "Aguardando pagamento":
+      return Colors.ORANGE;
+    case "Aguardando confirmação":
+      return Colors.YELLOW;
+    case "Confirmada":
+      return Colors.GREEN;
+    case "Cancelada":
+      return Colors.RED;
+    case "Realizada":
+      return Colors.PURPLE;
+    default:
+      return Colors.GREY;
+  }
+};
 
 function Home() {
   const navigate = useNavigate();
-  const user = useAuthStore((state) => state.user);
+  const { data: user } = useCurrentUser();
 
-  const [appointments, setAppointments] = useState(homeUpcoming || []);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const menuOpen = Boolean(anchorEl);
+
+  // Buscar consultas do usuário
+  const { data: appointmentsData, isLoading } = useAppointments({
+    page: 1,
+    size: 1000, // Buscar todas para filtrar localmente
+  });
+
+  // Buscar psicólogos (para pacientes)
+  const { data: psychologistsData } = usePsychologists({
+    page: 1,
+    size: 1000,
+  });
+
+  // Buscar pacientes (para psicólogos)
+  const { data: patientsData } = usePatients({
+    page: 1,
+    size: 1000,
+  });
+
+  // Mapear dados das consultas
+  const appointments = useMemo(() => {
+    if (!appointmentsData?.items) return [];
+
+    const psychologistsMap = (psychologistsData?.items || []).reduce(
+      (acc, psychologist) => {
+        acc[psychologist.id] = psychologist;
+        return acc;
+      },
+      {}
+    );
+
+    const patientsMap = (patientsData?.items || []).reduce((acc, patient) => {
+      acc[patient.id] = patient;
+      return acc;
+    }, {});
+
+    return appointmentsData.items.map((appointment) => {
+      const psychologist = psychologistsMap[appointment.psychologist_id] || {};
+      const patient = patientsMap[appointment.patient_id] || {};
+
+      return {
+        id: appointment.id,
+        datetime: appointment.date,
+        professional: psychologist.name || "Psicólogo não encontrado",
+        professionalPicture:
+          psychologist.profile_picture?.src || "/default-avatar.png",
+        professionalId: appointment.psychologist_id,
+        patient: patient.name || "Paciente não encontrado",
+        patientPicture: patient.profile_picture?.src || "/default-avatar.png",
+        patientId: appointment.patient_id,
+        status: STATUS_MAP[appointment.status] || appointment.status,
+        rawStatus: appointment.status,
+        price: appointment.pix_payment?.value || 0,
+      };
+    });
+  }, [appointmentsData, psychologistsData, patientsData]);
 
   const upcoming = useMemo(() => {
     const now = new Date();
-    const future = (appointments || []).filter(
-      (c) => new Date(c.datetime) >= now
-    );
-    future.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    const future = (appointments || []).filter((c) => {
+      const d = parseServerDateToLocal(c.datetime);
+      return d && d >= now;
+    });
+    future.sort((a, b) => {
+      const da = parseServerDateToLocal(a.datetime);
+      const db = parseServerDateToLocal(b.datetime);
+      return (da?.getTime() || 0) - (db?.getTime() || 0);
+    });
     return future;
   }, [appointments]);
 
   const next = upcoming[0] || null;
   const lastPast = useMemo(() => {
     const now = new Date();
-    const past = (appointments || []).filter((c) => new Date(c.datetime) < now);
-    past.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+    const past = (appointments || []).filter((c) => {
+      const d = parseServerDateToLocal(c.datetime);
+      return d && d < now;
+    });
+    past.sort((a, b) => {
+      const da = parseServerDateToLocal(a.datetime);
+      const db = parseServerDateToLocal(b.datetime);
+      return (db?.getTime() || 0) - (da?.getTime() || 0);
+    });
     return past[0] || null;
   }, [appointments]);
 
@@ -66,18 +168,20 @@ function Home() {
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     return (appointments || [])
       .filter((c) => {
-        const dt = new Date(c.datetime);
-        return dt >= start && dt < end;
+        const dt = parseServerDateToLocal(c.datetime);
+        return dt && dt >= start && dt < end;
       })
-      .sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+      .sort((a, b) => {
+        const da = parseServerDateToLocal(a.datetime);
+        const db = parseServerDateToLocal(b.datetime);
+        return (da?.getTime() || 0) - (db?.getTime() || 0);
+      });
   }, [user?.type, appointments]);
 
   const markAsCompleted = (id) => {
     console.log("Marking as completed:", id);
   };
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const menuOpen = Boolean(anchorEl);
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
 
@@ -91,12 +195,30 @@ function Home() {
 
   const handleCancel = (appointmentId) => {
     handleMenuClose();
-    setAppointments((prev) =>
-      prev.map((a) =>
-        a.id === appointmentId ? { ...a, status: "Cancelada" } : a
-      )
-    );
+    // Não é possível atualizar state local, pois agora os dados vêm da API
+    // Aqui deveria chamar uma mutation para cancelar a consulta
+    console.log("Cancelling appointment:", appointmentId);
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <SubHeader text="Home" />
+        <Container>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              minHeight: "300px",
+            }}
+          >
+            <CircularProgress sx={{ color: Colors.ORANGE }} />
+          </Box>
+        </Container>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -141,7 +263,7 @@ function Home() {
                                   fontSize: FontSizes.MEDIUM,
                                 }}
                               />
-                              {new Date(c.datetime).toLocaleTimeString()}
+                              {formatTime(c.datetime)}
                             </MutedText>
                           </Info>
                         </div>
@@ -149,7 +271,7 @@ function Home() {
                           <Brightness1
                             sx={{
                               fontSize: FontSizes.NORMAL,
-                              color: Colors.GREEN,
+                              color: getStatusColor(c.status),
                             }}
                           />
                           {c.status}
@@ -216,7 +338,7 @@ function Home() {
                             fontSize: FontSizes.MEDIUM,
                           }}
                         />
-                        {new Date(next.datetime).toLocaleString()}
+                        {formatDateTime(next.datetime)}
                       </MutedText>
                     </Info>
                   </Row>
@@ -303,7 +425,7 @@ function Home() {
                                   fontSize: FontSizes.MEDIUM,
                                 }}
                               />
-                              {new Date(lastPast.datetime).toLocaleString()}
+                              {formatDateTime(lastPast.datetime)}
                             </MutedText>
                           </Info>
                         </div>
@@ -311,7 +433,7 @@ function Home() {
                           <Brightness1
                             sx={{
                               fontSize: FontSizes.NORMAL,
-                              color: Colors.PURPLE,
+                              color: getStatusColor(lastPast.status),
                             }}
                           />
                           {lastPast.status}

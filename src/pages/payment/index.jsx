@@ -1,6 +1,6 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import QRCode from 'qrcode';
+import React from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import QRCode from "qrcode";
 import {
   PageContainer,
   Container,
@@ -24,22 +24,31 @@ import {
   PriceStrong,
   Section,
   BoldText,
-} from './styles';
+} from "./styles";
 
-import Colors from '../../globalConfigs/globalStyles/colors';
-import Rating from '@mui/material/Rating';
-import { SubHeader } from '../../components';
+import Colors from "../../globalConfigs/globalStyles/colors";
+import { formatDateTime, parseServerDateToLocal } from "../../utils/formatDate";
+import Rating from "@mui/material/Rating";
+import { SubHeader } from "../../components";
+import { useMarkPaymentSent } from "../../services/useAppointments";
+import { useToastStore } from "../../stores/useToastStore";
 
 function formatBRL(value) {
   try {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
   } catch {
     return `R$ ${value}`;
   }
 }
 
-const buildPixString = ({ pixKey = '00000000-0000-0000-0000-000000000000', amount = 0, description = 'Pagamento' }) => {
-  // Simplified placeholder PIX payload (not following EMV specs). For demo only.
+const buildPixString = ({
+  pixKey = "00000000-0000-0000-0000-000000000000",
+  amount = 0,
+  description = "Pagamento",
+}) => {
   return `PIX|key:${pixKey}|amount:${amount.toFixed(2)}|desc:${description}`;
 };
 
@@ -50,19 +59,56 @@ const Payment = () => {
   const psychologist = state?.psychologist;
   const slot = state?.slot;
   const price = state?.price || 0;
+  const appointment_id = state?.appointment_id;
 
-  const [qrSrc, setQrSrc] = React.useState('');
+  const addToast = useToastStore((state) => state.addToast);
+  const markPaymentSentMutation = useMarkPaymentSent();
+
+  const [qrSrc, setQrSrc] = React.useState("");
 
   React.useEffect(() => {
-    const pix = buildPixString({ pixKey: '123e4567-e89b-12d3-a456-426614174000', amount: Number(price), description: `Consulta ${psychologist?.name || ''}` });
+    const pix = buildPixString({
+      pixKey: "123e4567-e89b-12d3-a456-426614174000",
+      amount: Number(price),
+      description: `Consulta ${psychologist?.name || ""}`,
+    });
     QRCode.toDataURL(pix)
-      .then(url => setQrSrc(url))
-      .catch(() => setQrSrc(''));
+      .then((url) => setQrSrc(url))
+      .catch(() => setQrSrc(""));
   }, [price, psychologist]);
 
-  const pixString = React.useMemo(() => buildPixString({ pixKey: '123e4567-e89b-12d3-a456-426614174000', amount: Number(price), description: `Consulta ${psychologist?.name || ''}` }), [price, psychologist]);
+  const pixString = React.useMemo(
+    () =>
+      buildPixString({
+        pixKey: "123e4567-e89b-12d3-a456-426614174000",
+        amount: Number(price),
+        description: `Consulta ${psychologist?.name || ""}`,
+      }),
+    [price, psychologist]
+  );
 
-  // copyPix removed — buttons now navigate to home
+  const handleMarkPaymentSent = async () => {
+    if (!appointment_id) {
+      addToast("ID do agendamento não encontrado", "error");
+      return;
+    }
+
+    try {
+      await markPaymentSentMutation.mutateAsync(appointment_id);
+      addToast(
+        "Pagamento marcado como enviado! Aguardando confirmação do psicólogo.",
+        "success"
+      );
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error("Error marking payment sent:", error);
+      addToast(
+        error.response?.data?.message ||
+          "Erro ao marcar pagamento. Tente novamente.",
+        "error"
+      );
+    }
+  };
 
   if (!psychologist || !slot) {
     return (
@@ -93,37 +139,63 @@ const Payment = () => {
               </div>
             </FlexRow>
             <RightAligned>
-              <FlexRow gap="8px" justify="flex-end">
-                <Rating value={psychologist.rating} precision={0.1} readOnly size="small" sx={{ color: Colors.ORANGE }} />
+              {/* <FlexRow gap="8px" justify="flex-end">
+                <Rating
+                  value={psychologist.rating}
+                  precision={0.1}
+                  readOnly
+                  size="small"
+                  sx={{ color: Colors.ORANGE }}
+                />
                 <Value>{Number(psychologist.rating).toFixed(1)}</Value>
-              </FlexRow>
+              </FlexRow> */}
               <PriceStrong>{formatBRL(price)}</PriceStrong>
             </RightAligned>
           </InfoRow>
 
           <Section>
             <Label>Horário</Label>
-            <Value>{(() => {
-              const candidate = slot.datetime || (slot.day && slot.time ? `${slot.day} ${slot.time}` : null);
-              if (!candidate) return '';
-              try {
-                const d = new Date(candidate);
-                if (isNaN(d.getTime())) return `${slot.day || ''} ${slot.time || ''}`.trim();
-                return d.toLocaleString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-              } catch {
-                return `${slot.day || ''} ${slot.time || ''}`.trim();
-              }
-            })()}</Value>
+            <Value>
+              {(() => {
+                const candidate =
+                  slot.datetime ||
+                  (slot.day && slot.time ? `${slot.day} ${slot.time}` : null);
+                if (!candidate) return "";
+                try {
+                  const d =
+                    parseServerDateToLocal(candidate) || new Date(candidate);
+                  if (isNaN(d.getTime()))
+                    return `${slot.day || ""} ${slot.time || ""}`.trim();
+                  return formatDateTime(d, "pt-BR", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+                } catch {
+                  return `${slot.day || ""} ${slot.time || ""}`.trim();
+                }
+              })()}
+            </Value>
           </Section>
 
           <Section mt="12px">
             <Label>Especialidades</Label>
-            <Value>{psychologist.specialties.join(', ')}</Value>
+            <Value>
+              {psychologist.specialties?.length > 0
+                ? psychologist.specialties.map((s) => s.name || s).join(", ")
+                : "Não informado"}
+            </Value>
           </Section>
 
           <Section mt="12px">
             <Label>Abordagens</Label>
-            <Value>{psychologist.approaches.join(', ')}</Value>
+            <Value>
+              {psychologist.approaches?.length > 0
+                ? psychologist.approaches.map((a) => a.name || a).join(", ")
+                : "Não informado"}
+            </Value>
           </Section>
         </PaymentCard>
 
@@ -131,11 +203,20 @@ const Payment = () => {
           <QrContainer>
             <BoldText>Pagar via PIX</BoldText>
             {qrSrc ? <QrImage src={qrSrc} alt="QR PIX" /> : <QrPlaceholder />}
-            <SmallHint>Leia com seu app bancário ou copie o código abaixo.</SmallHint>
+            <SmallHint>
+              Leia com seu app bancário ou copie o código abaixo.
+            </SmallHint>
             <PixText readOnly value={pixString} />
             <ButtonsRow>
-              <CopyButton onClick={() => navigate('/')}>Cancelar</CopyButton>
-              <ConfirmButton onClick={() => navigate('/')}>Concluído</ConfirmButton>
+              <CopyButton onClick={() => navigate("/")}>Cancelar</CopyButton>
+              <ConfirmButton
+                onClick={handleMarkPaymentSent}
+                disabled={markPaymentSentMutation.isPending || !appointment_id}
+              >
+                {markPaymentSentMutation.isPending
+                  ? "Processando..."
+                  : "Concluído"}
+              </ConfirmButton>
             </ButtonsRow>
           </QrContainer>
         </RightColumn>

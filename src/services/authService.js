@@ -24,17 +24,9 @@ export const authService = {
 
       useAuthStore.getState().setToken(accessToken);
 
-      const result = await this.getCurrentUser();
-      if (!result.success) {
-        return result;
-      }
-
-      const user = result.data;
-      useAuthStore.getState().setUser(user);
-
+      // User será carregado pelo hook useCurrentUser
       return {
         success: true,
-        data: user,
       };
     } catch (error) {
       return {

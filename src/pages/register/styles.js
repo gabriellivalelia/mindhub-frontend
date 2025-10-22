@@ -37,7 +37,7 @@ export const FormContainer = styled.div`
 export const ToggleContainer = styled.div`
   display: flex;
   background-color: transparent;
-  border: 2px solid ${Colors.GREEN};
+  border: 2px solid ${Colors.BROWN};
   border-radius: 8px;
   min-width: 90%;
   overflow: hidden;
@@ -47,7 +47,7 @@ export const ToggleContainer = styled.div`
 
 export const ToggleButton = styled.button`
   align-items: center;
-  background: ${(props) => (props.active ? Colors.GREEN : "transparent")};
+  background: ${(props) => (props.active ? Colors.BROWN : "transparent")};
   border: none;
   color: ${Colors.WHITE};
   display: flex;

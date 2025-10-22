@@ -147,7 +147,7 @@ export const ProfileContainer = styled.div`
   flex-direction: row;
   align-items: flex-start;
   width: 100%;
-  border-bottom: 1px solid ${Colors.GREY};
+  border-bottom: 1px solid ${Colors.PURPLE};
 `;
 
 export const ProfessionalPictureContainer = styled.div``;

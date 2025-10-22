@@ -37,9 +37,11 @@ import GoogleIconsSrc from "../../assets/googleIcon.png";
 import LogoSrc from "../../assets/logo.png";
 import { authService } from "../../services/authService";
 import { HTTP_STATUS } from "../../utils/constants";
+import { useToastStore } from "../../stores/useToastStore";
 
 function Login() {
   const navigate = useNavigate();
+  const addToast = useToastStore((state) => state.addToast);
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -54,16 +56,21 @@ function Login() {
 
   async function handleLogin(data) {
     setLoading(true);
+    setLoginError(""); // Limpar erro anterior
 
     const result = await authService.login(data.email, data.password);
     if (result.success) {
-      console.log("Login bem-sucedido!", result.data);
+      addToast("Login realizado com sucesso!", "success");
       navigate("/");
     } else {
       if (result.error?.status === HTTP_STATUS.UNAUTHORIZED) {
-        setLoginError("E-mail ou senha incorretos.");
+        const errorMsg = "E-mail ou senha incorretos.";
+        setLoginError(errorMsg);
+        addToast(errorMsg, "error");
       } else {
-        setLoginError("Erro ao fazer login. Tente novamente mais tarde.");
+        const errorMsg = "Erro ao fazer login. Tente novamente mais tarde.";
+        setLoginError(errorMsg);
+        addToast(errorMsg, "error");
       }
     }
 

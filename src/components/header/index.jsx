@@ -14,10 +14,11 @@ import {
 import LogoSrc from "../../assets/logo.png";
 import AccountMenu from "./accountMenu";
 import { useAuthStore } from "../../stores/useAuthStore";
+import { useCurrentUser } from "../../services/useCurrentUser";
 
 function Header() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const user = useAuthStore((state) => state.user);
+  const { data: user } = useCurrentUser();
   const navigate = useNavigate();
 
   return (

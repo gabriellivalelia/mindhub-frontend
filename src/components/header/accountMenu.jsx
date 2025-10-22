@@ -16,14 +16,16 @@ import Logout from "@mui/icons-material/Logout";
 import { useNavigate } from "react-router-dom";
 import Colors from "../../globalConfigs/globalStyles/colors";
 import FontSizes from "../../globalConfigs/globalStyles/fontSizes";
-import { useAuthStore } from "../../stores/useAuthStore";
+import { useCurrentUser } from "../../services/useCurrentUser";
+import authService from "../../services/authService";
+import { useToastStore } from "../../stores/useToastStore";
 
 export default function AccountMenu({ avatarSrc }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
-  const user = useAuthStore((state) => state.user);
-  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const { data: user } = useCurrentUser();
   const navigate = useNavigate();
+  const addToast = useToastStore((state) => state.addToast);
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -32,10 +34,16 @@ export default function AccountMenu({ avatarSrc }) {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     handleClose();
-    clearAuth();
-    navigate("/");
+    try {
+      await authService.logout();
+      addToast("Logout realizado com sucesso!", "success");
+      navigate("/", { replace: true });
+    } catch (error) {
+      addToast("Erro ao fazer logout. Tente novamente.", "error");
+      console.error("Erro no logout:", error);
+    }
   };
 
   return (

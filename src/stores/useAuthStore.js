@@ -14,28 +14,20 @@ export const useAuthStore = create(
         });
       },
 
-      setUser: (user) => {
-        set({ user });
-      },
-
-      setAuthData: (token, user) => {
-        set({
-          token,
-          user,
-          isAuthenticated: !!token,
-        });
-      },
-
       clearAuth: () => {
         set({
           token: null,
-          user: null,
           isAuthenticated: false,
         });
       },
     }),
     {
       name: "auth-storage",
+      // Apenas persistir token e isAuthenticated, não o user
+      partialize: (state) => ({
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
   )
 );

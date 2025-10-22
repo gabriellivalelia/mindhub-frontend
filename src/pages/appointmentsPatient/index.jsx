@@ -18,7 +18,7 @@ import {
   SearchContainer,
   SearchIconWrapper,
 } from "./styles";
-import { FilterTitle, FullWidth, RowBetween } from "./styles";
+import { FilterTitle, FullWidth, RowBetween, LabelSmall } from "./styles";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
@@ -29,6 +29,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 
 import { useNavigate } from "react-router-dom";
 import { useAppointments } from "../../services/useAppointments";
+import { usePsychologists } from "../../services/usePsychologists";
 
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
@@ -43,6 +44,7 @@ import { SubHeader } from "../../components";
 import Colors from "../../globalConfigs/globalStyles/colors";
 import { FontSizes } from "../../globalConfigs";
 import Schedule from "@mui/icons-material/Schedule";
+import { formatDateTime } from "../../utils/formatDate";
 import ManageHistory from "@mui/icons-material/ManageHistory";
 import PriceCheck from "@mui/icons-material/PriceCheck";
 import Brightness1 from "@mui/icons-material/Brightness1";
@@ -50,10 +52,21 @@ import FilterAlt from "@mui/icons-material/FilterAlt";
 import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import Search from "@mui/icons-material/Search";
 
+const STATUS_MAP = {
+  waiting_for_payment: "Aguardando pagamento",
+  pending_confirmation: "Aguardando confirmação",
+  confirmed: "Confirmada",
+  completed: "Realizada",
+  canceled: "Cancelada",
+};
+
 const getStatusColor = (status) => {
-  switch (status) {
-    case "Agendada":
+  const normalizedStatus = STATUS_MAP[status] || status;
+  switch (normalizedStatus) {
+    case "Aguardando pagamento":
       return Colors.ORANGE;
+    case "Aguardando confirmação":
+      return Colors.YELLOW;
     case "Confirmada":
       return Colors.GREEN;
     case "Cancelada":
@@ -90,6 +103,12 @@ function AppointmentsPatient() {
     status: statusFilter,
   });
 
+  // Buscar todos os psicólogos para mapear os dados
+  const { data: psychologistsData } = usePsychologists({
+    page: 1,
+    size: 1000, // Buscar todos para ter disponível
+  });
+
   const handleMenuOpen = (e, consultation) => {
     setAnchorEl(e.currentTarget);
     setSelectedConsultation(consultation);
@@ -99,11 +118,6 @@ function AppointmentsPatient() {
     setSelectedConsultation(null);
   };
 
-  // const applyFilters = () => {
-  //   setPage(1);
-  //   setIsFilterOpen(false);
-  // };
-
   const clearFilters = () => {
     setStartDate("");
     setEndDate("");
@@ -112,14 +126,47 @@ function AppointmentsPatient() {
     setPage(1);
   };
 
+  // Mapear dados da API para o formato esperado pelo componente
+  const mappedAppointments = useMemo(() => {
+    if (!appointmentsData?.items) return [];
+
+    const psychologistsMap = (psychologistsData?.items || []).reduce(
+      (acc, p) => {
+        acc[p.id] = p;
+        return acc;
+      },
+      {}
+    );
+
+    return appointmentsData.items.map((appointment) => {
+      const psychologist = psychologistsMap[appointment.psychologist_id] || {};
+
+      return {
+        id: appointment.id,
+        datetime: appointment.date,
+        professional: psychologist.name || "Psicólogo não encontrado",
+        professionalPicture:
+          psychologist.profile_picture?.src || "/default-avatar.png",
+        status: STATUS_MAP[appointment.status] || appointment.status,
+        rawStatus: appointment.status, // Guardar status original para lógica
+        psychologist_id: appointment.psychologist_id,
+        patient_id: appointment.patient_id,
+        price: appointment.pix_payment?.value || 0,
+        crp: psychologist.crp || "",
+        rating: psychologist.rating || 0,
+        specialties: psychologist.specialties || [],
+        approaches: psychologist.approaches || [],
+      };
+    });
+  }, [appointmentsData, psychologistsData]);
+
   const filteredAppointments = useMemo(() => {
     const term = (searchTerm || "").trim().toLowerCase();
-    return (appointmentsData?.items || []).filter((a) => {
+    return mappedAppointments.filter((a) => {
       if (term && !a.professional.toLowerCase().includes(term)) return false;
-
       return true;
     });
-  }, [appointmentsData, searchTerm]);
+  }, [mappedAppointments, searchTerm]);
 
   return (
     <PageContainer>
@@ -148,74 +195,79 @@ function AppointmentsPatient() {
           <Box sx={{ width: 320, padding: 2 }} role="presentation">
             <FilterTitle>Filtros</FilterTitle>
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <FormControl
-                fullWidth
-                size="small"
-                sx={{
-                  "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-                    { borderColor: Colors.ORANGE },
-                  "& .MuiInputLabel-root.Mui-focused": { color: Colors.ORANGE },
-                }}
-              >
-                <InputLabel id="status-filter-label">Status</InputLabel>
-                <Select
-                  labelId="status-filter-label"
-                  id="status-filter"
-                  value={statusFilter}
-                  label="Status"
-                  onChange={(e) => setStatusFilter(e.target.value)}
+              <div>
+                <LabelSmall>Status</LabelSmall>
+                <FormControl
+                  fullWidth
+                  size="small"
                   sx={{
-                    height: 36,
-                    "& .MuiSvgIcon-root": { color: Colors.ORANGE },
+                    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                      { borderColor: Colors.ORANGE },
                   }}
                 >
-                  <MenuItem value="">Todos</MenuItem>
-                  <MenuItem value="confirmed">Confirmada</MenuItem>
-                  <MenuItem value="waiting_for_payment">
-                    Aguardando pagamento
-                  </MenuItem>
-                  <MenuItem value="completed">Realizada</MenuItem>
-                  <MenuItem value="canceled">Cancelada</MenuItem>
-                </Select>
-              </FormControl>
+                  <Select
+                    id="status-filter"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    displayEmpty
+                    sx={{
+                      height: 36,
+                      "& .MuiSvgIcon-root": { color: Colors.ORANGE },
+                    }}
+                  >
+                    <MenuItem value="">Todos</MenuItem>
+                    <MenuItem value="waiting_for_payment">
+                      Aguardando pagamento
+                    </MenuItem>
+                    <MenuItem value="pending_confirmation">
+                      Aguardando confirmação
+                    </MenuItem>
+                    <MenuItem value="confirmed">Confirmada</MenuItem>
+                    <MenuItem value="completed">Realizada</MenuItem>
+                    <MenuItem value="canceled">Cancelada</MenuItem>
+                  </Select>
+                </FormControl>
+              </div>
 
-              <TextField
-                label="Data de início"
-                type="date"
-                size="small"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                onKeyDown={(e) => e.preventDefault()}
-                InputLabelProps={{ shrink: true }}
-                sx={{
-                  "& .MuiInputBase-input": {
-                    fontSize: FontSizes.SMALL,
-                    cursor: "pointer",
-                  },
-                  "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-                    { borderColor: Colors.ORANGE },
-                  "& .MuiInputLabel-root.Mui-focused": { color: Colors.ORANGE },
-                }}
-              />
+              <div>
+                <LabelSmall>Data de início</LabelSmall>
+                <TextField
+                  type="date"
+                  size="small"
+                  fullWidth
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  onKeyDown={(e) => e.preventDefault()}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      fontSize: FontSizes.SMALL,
+                      cursor: "pointer",
+                    },
+                    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                      { borderColor: Colors.ORANGE },
+                  }}
+                />
+              </div>
 
-              <TextField
-                label="Data de fim"
-                type="date"
-                size="small"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                onKeyDown={(e) => e.preventDefault()}
-                InputLabelProps={{ shrink: true }}
-                sx={{
-                  "& .MuiInputBase-input": {
-                    fontSize: FontSizes.SMALL,
-                    cursor: "pointer",
-                  },
-                  "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-                    { borderColor: Colors.ORANGE },
-                  "& .MuiInputLabel-root.Mui-focused": { color: Colors.ORANGE },
-                }}
-              />
+              <div>
+                <LabelSmall>Data de fim</LabelSmall>
+                <TextField
+                  type="date"
+                  size="small"
+                  fullWidth
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  onKeyDown={(e) => e.preventDefault()}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      fontSize: FontSizes.SMALL,
+                      cursor: "pointer",
+                    },
+                    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                      { borderColor: Colors.ORANGE },
+                  }}
+                />
+              </div>
 
               <Box
                 sx={{
@@ -309,7 +361,7 @@ function AppointmentsPatient() {
                         </ProfessionalName>
                         <ConsultationDateTime>
                           <Schedule sx={{ fontSize: FontSizes.MEDIUM }} />{" "}
-                          {new Date(consultation.datetime).toLocaleString()}
+                          {formatDateTime(consultation.datetime)}
                         </ConsultationDateTime>
                       </ConsultationInfo>
                       <ConsultationStatus status={consultation.status}>
@@ -342,8 +394,8 @@ function AppointmentsPatient() {
                       1,
                       Math.ceil((filteredAppointments?.length || 0) / pageSize)
                     )}
-                    hideNextButton={!appointmentsData?.hasNext}
-                    hidePrevButton
+                    // hideNextButton={!appointmentsData?.hasNext}
+                    // hidePrevButton
                     page={page}
                     onChange={(e, value) => setPage(value)}
                     sx={{
@@ -413,13 +465,14 @@ function AppointmentsPatient() {
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
           transformOrigin={{ vertical: "top", horizontal: "right" }}
         >
-          {selectedConsultation?.status === "Aguardando pagamento" && (
+          {selectedConsultation?.rawStatus === "waiting_for_payment" && (
             <MenuItem
               onClick={() => {
                 handleMenuClose();
                 navigate("/payment", {
                   state: {
                     psychologist: {
+                      id: selectedConsultation.psychologist_id,
                       name: selectedConsultation.professional,
                       picture: selectedConsultation.professionalPicture,
                       crp: selectedConsultation.crp || "",
@@ -429,6 +482,7 @@ function AppointmentsPatient() {
                     },
                     slot: { datetime: selectedConsultation.datetime },
                     price: selectedConsultation.price || 150,
+                    appointment_id: selectedConsultation.id,
                   },
                 });
               }}

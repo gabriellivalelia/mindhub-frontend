@@ -29,6 +29,7 @@ import { useAuthStore } from "./stores/useAuthStore";
 import { AppointmentItem } from "./pages/home/styles";
 import ProtectedRoute from "./utils/protectedRoute";
 import UnauthRoute from "./utils/unauthRoute";
+import { useCurrentUser } from "./services/useCurrentUser";
 
 function HasFooterAndHeaderRoutes() {
   return (
@@ -41,10 +42,10 @@ function HasFooterAndHeaderRoutes() {
 }
 
 function AppointmentsRoute() {
-  const userType = useAuthStore((state) => state.user?.type);
+  const { data: user } = useCurrentUser();
   return (
     <>
-      {userType === "psychologist" ? (
+      {user?.type === "psychologist" ? (
         <AppointmentsPsychologist />
       ) : (
         <AppointmentsPatient />
@@ -54,13 +55,15 @@ function AppointmentsRoute() {
 }
 
 function AddAvailabilitiesRoute() {
-  const userType = useAuthStore((state) => state.user?.type);
-  return <>{userType === "psychologist" ? <AddAvailabilities /> : <Home />}</>;
+  const { data: user } = useCurrentUser();
+  return (
+    <>{user?.type === "psychologist" ? <AddAvailabilities /> : <Home />}</>
+  );
 }
 
 function WriteContentRoute() {
-  const userType = useAuthStore((state) => state.user?.type);
-  return <>{userType === "psychologist" ? <WriteContent /> : <Home />}</>;
+  const { data: user } = useCurrentUser();
+  return <>{user?.type === "psychologist" ? <WriteContent /> : <Home />}</>;
 }
 
 function HomeRoute() {

@@ -54,6 +54,38 @@ export function useCreateAppointment() {
 }
 
 /**
+ * Hook para solicitar agendamento de consulta (paciente)
+ * @example
+ * const solicitAppointment = useSolicitScheduleAppointment();
+ * await solicitAppointment.mutateAsync({
+ *   psychologist_id: "uuid-do-psicologo",
+ *   appointment_date: "2025-10-24T10:00:00Z"
+ * });
+ */
+export function useSolicitScheduleAppointment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ psychologist_id, appointment_date }) => {
+      const response = await api.post(
+        `/patients/solicit-schedule-appointment/${psychologist_id}`,
+        appointment_date, // Body com a data
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["psychologists"] });
+    },
+  });
+}
+
+/**
  * Hook para atualizar consulta
  */
 export function useUpdateAppointment() {
@@ -129,6 +161,44 @@ export function useRescheduleAppointment() {
           date: newDate,
           time: newTime,
         }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    },
+  });
+}
+
+/**
+ * Hook para paciente marcar que enviou o pagamento
+ */
+export function useMarkPaymentSent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (appointmentId) => {
+      const response = await api.post(
+        `/patients/appointments/${appointmentId}/mark-payment-sent`
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    },
+  });
+}
+
+/**
+ * Hook para psicólogo confirmar recebimento do pagamento
+ */
+export function usePsychologistConfirmPayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (appointmentId) => {
+      const response = await api.post(
+        `/psychologists/appointments/${appointmentId}/confirm-payment`
       );
       return response.data;
     },
