@@ -86,28 +86,6 @@ export function useSolicitScheduleAppointment() {
 }
 
 /**
- * Hook para atualizar consulta
- */
-export function useUpdateAppointment() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ appointmentId, data }) => {
-      const response = await api.put(`/appointments/${appointmentId}`, data);
-      return response.data;
-    },
-    onSuccess: (data, variables) => {
-      // Invalidar lista de consultas
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      // Invalidar consulta específica
-      queryClient.invalidateQueries({
-        queryKey: ["appointment", variables.appointmentId],
-      });
-    },
-  });
-}
-
-/**
  * Hook para cancelar consulta
  */
 export function useCancelAppointment() {
@@ -154,18 +132,29 @@ export function useRescheduleAppointment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ appointmentId, newDate, newTime }) => {
+    mutationFn: async ({ appointmentId, newDate }) => {
+      // send newDate as the body (ISO string). FastAPI accepts a datetime in the body.
       const response = await api.patch(
         `/appointments/${appointmentId}/reschedule`,
+        newDate,
         {
-          date: newDate,
-          time: newTime,
+          headers: { "Content-Type": "application/json" },
         }
       );
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // refresh appointments and psychologists so availabilities reflect change
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["psychologists"] });
+      // invalidate specific psychologist cache if returned
+      const psychologistId =
+        data?.psychologist_id || data?.psychologistId || null;
+      if (psychologistId) {
+        queryClient.invalidateQueries({
+          queryKey: ["psychologist", psychologistId],
+        });
+      }
     },
   });
 }
@@ -199,6 +188,25 @@ export function usePsychologistConfirmPayment() {
     mutationFn: async (appointmentId) => {
       const response = await api.post(
         `/psychologists/appointments/${appointmentId}/confirm-payment`
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    },
+  });
+}
+
+/**
+ * Hook para psicólogo marcar consulta como concluída
+ */
+export function useCompleteAppointment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (appointmentId) => {
+      const response = await api.post(
+        `/psychologists/appointments/${appointmentId}/complete`
       );
       return response.data;
     },

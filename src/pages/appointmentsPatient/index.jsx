@@ -28,7 +28,14 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import CircularProgress from "@mui/material/CircularProgress";
 
 import { useNavigate } from "react-router-dom";
-import { useAppointments } from "../../services/useAppointments";
+import { usePsychologist } from "../../services/usePsychologists";
+import {
+  useAppointments,
+  useCancelAppointment,
+  useRescheduleAppointment,
+} from "../../services/useAppointments";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToastStore } from "../../stores/useToastStore";
 import { usePsychologists } from "../../services/usePsychologists";
 
 import Drawer from "@mui/material/Drawer";
@@ -40,17 +47,24 @@ import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Pagination from "@mui/material/Pagination";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogActions from "@mui/material/DialogActions";
 import { SubHeader } from "../../components";
 import Colors from "../../globalConfigs/globalStyles/colors";
 import { FontSizes } from "../../globalConfigs";
 import Schedule from "@mui/icons-material/Schedule";
-import { formatDateTime } from "../../utils/formatDate";
+import { formatDateTime, parseServerDateToLocal } from "../../utils/formatDate";
 import ManageHistory from "@mui/icons-material/ManageHistory";
 import PriceCheck from "@mui/icons-material/PriceCheck";
 import Brightness1 from "@mui/icons-material/Brightness1";
 import FilterAlt from "@mui/icons-material/FilterAlt";
 import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import Search from "@mui/icons-material/Search";
+import ScheduleComponent from "../../components/scheduleComponent";
+import { Padded } from "../home/styles";
 
 const STATUS_MAP = {
   waiting_for_payment: "Aguardando pagamento",
@@ -103,6 +117,31 @@ function AppointmentsPatient() {
     status: statusFilter,
   });
 
+  const cancelAppointmentMutation = useCancelAppointment();
+  const addToast = useToastStore((state) => state.addToast);
+  const rescheduleMutation = useRescheduleAppointment();
+  const queryClient = useQueryClient();
+
+  // state to show schedule modal for rescheduling
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [rescheduleTarget, setRescheduleTarget] = useState(null); // consultation object
+  const [selectedRescheduleSlot, setSelectedRescheduleSlot] = useState(null);
+
+  const handleCancel = async (appointmentId) => {
+    try {
+      await cancelAppointmentMutation.mutateAsync(appointmentId);
+      addToast("Consulta cancelada com sucesso", "success");
+      handleMenuClose();
+    } catch (err) {
+      console.error("Erro ao cancelar consulta:", err);
+      addToast(
+        err.response?.data?.message ||
+          "Erro ao cancelar consulta. Tente novamente.",
+        "error"
+      );
+    }
+  };
+
   // Buscar todos os psicólogos para mapear os dados
   const { data: psychologistsData } = usePsychologists({
     page: 1,
@@ -141,6 +180,19 @@ function AppointmentsPatient() {
     return appointmentsData.items.map((appointment) => {
       const psychologist = psychologistsMap[appointment.psychologist_id] || {};
 
+      const apptDate = parseServerDateToLocal(appointment.date);
+      const msUntil = apptDate.getTime() - new Date().getTime();
+      const allowedByTime = msUntil >= 12 * 60 * 60 * 1000; // at least 12 hours ahead
+      const allowedByStatus = [
+        "waiting_for_payment",
+        "pending_confirmation",
+      ].includes(appointment.status);
+
+      // do not allow cancel if already canceled or completed
+      const forbiddenStatus = ["canceled", "completed"].includes(
+        appointment.status
+      );
+
       return {
         id: appointment.id,
         datetime: appointment.date,
@@ -156,6 +208,7 @@ function AppointmentsPatient() {
         rating: psychologist.rating || 0,
         specialties: psychologist.specialties || [],
         approaches: psychologist.approaches || [],
+        canCancel: !forbiddenStatus && (allowedByTime || allowedByStatus),
       };
     });
   }, [appointmentsData, psychologistsData]);
@@ -499,7 +552,16 @@ function AppointmentsPatient() {
           <MenuItem
             onClick={() => {
               handleMenuClose();
-              console.log("Reschedule", selectedConsultation);
+              // open reschedule modal using ScheduleComponent
+              // invalidate psychologist data to fetch fresh availabilities
+              const pid = selectedConsultation?.psychologist_id;
+              if (pid)
+                queryClient.invalidateQueries({
+                  queryKey: ["psychologist", pid],
+                });
+              setRescheduleTarget(selectedConsultation);
+              setSelectedRescheduleSlot(null);
+              setRescheduleOpen(true);
             }}
           >
             <ListItemIcon>
@@ -510,18 +572,111 @@ function AppointmentsPatient() {
             </ListItemIcon>
             Reagendar consulta
           </MenuItem>
-          <MenuItem
-            onClick={() => {
-              handleMenuClose();
-              console.log("Cancel", selectedConsultation?.id);
-            }}
-          >
-            <ListItemIcon>
-              <CancelIcon sx={{ color: Colors.GREY }} fontSize="small" />
-            </ListItemIcon>
-            Cancelar consulta
-          </MenuItem>
+          {selectedConsultation?.canCancel && (
+            <MenuItem
+              onClick={() => {
+                handleCancel(selectedConsultation.id);
+              }}
+            >
+              <ListItemIcon>
+                <CancelIcon sx={{ color: Colors.GREY }} fontSize="small" />
+              </ListItemIcon>
+              Cancelar consulta
+            </MenuItem>
+          )}
         </Menu>
+        {/* Reschedule dialog using ScheduleComponent */}
+        <Dialog
+          open={rescheduleOpen}
+          onClose={() => setRescheduleOpen(false)}
+          aria-labelledby="reschedule-dialog-title"
+          maxWidth="md"
+        >
+          <DialogTitle id="reschedule-dialog-title">
+            Reagendar Consulta
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Selecione um novo horário disponível para o psicólogo.
+            </DialogContentText>
+            {rescheduleTarget && (
+              <Box sx={{ mt: 2 }}>
+                <ReschedulePsychologistSchedule
+                  psychologistId={rescheduleTarget.psychologist_id}
+                  onSlotSelect={(slot) => setSelectedRescheduleSlot(slot)}
+                />
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => setRescheduleOpen(false)}
+              variant="outlined"
+              sx={{
+                borderColor: Colors.ORANGE,
+                color: Colors.ORANGE,
+                textTransform: "none",
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                // validations
+                if (!rescheduleTarget) return;
+                const statusOk = ["confirmed", "pending_confirmation"].includes(
+                  rescheduleTarget.rawStatus
+                );
+                const apptDate = parseServerDateToLocal(
+                  rescheduleTarget.datetime
+                );
+                const msUntil = apptDate
+                  ? apptDate.getTime() - new Date().getTime()
+                  : 0;
+                const timeOk = msUntil >= 12 * 60 * 60 * 1000;
+                if (!statusOk || !timeOk) {
+                  addToast(
+                    "Não é possível reagendar: apenas consultas confirmadas ou em aguardando confirmação com pelo menos 12h de antecedência.",
+                    "error"
+                  );
+                  return;
+                }
+                if (!selectedRescheduleSlot) {
+                  addToast(
+                    "Selecione um novo horário antes de confirmar.",
+                    "warning"
+                  );
+                  return;
+                }
+
+                try {
+                  // call reschedule mutation
+                  await rescheduleMutation.mutateAsync({
+                    appointmentId: rescheduleTarget.id,
+                    newDate: selectedRescheduleSlot.iso,
+                  });
+                  addToast("Consulta reagendada com sucesso", "success");
+                  setRescheduleOpen(false);
+                } catch (err) {
+                  console.error("Erro ao reagendar:", err);
+                  addToast(
+                    err.response?.data?.message || "Erro ao reagendar consulta",
+                    "error"
+                  );
+                }
+              }}
+              variant="contained"
+              sx={{
+                backgroundColor: Colors.ORANGE,
+                color: Colors.WHITE,
+                "&:hover": { backgroundColor: Colors.LIGHT_ORANGE },
+                textTransform: "none",
+              }}
+            >
+              Confirmar
+            </Button>
+          </DialogActions>
+        </Dialog>
         <ScheduleNewAppointmentButton
           onClick={() => navigate("/schedule-new-appointment")}
         >
@@ -533,3 +688,14 @@ function AppointmentsPatient() {
 }
 
 export default AppointmentsPatient;
+
+// Helper component to fetch psychologist availabilities for rescheduling
+function ReschedulePsychologistSchedule({ psychologistId, onSlotSelect }) {
+  const { data: psychologist } = usePsychologist(psychologistId);
+  const slots =
+    psychologist?.availabilities?.map((a) => ({
+      date: a.date ?? a.datetime ?? a.iso ?? null,
+      available: a.available ?? true,
+    })) || [];
+  return <ScheduleComponent allSlots={slots} onSlotSelect={onSlotSelect} />;
+}

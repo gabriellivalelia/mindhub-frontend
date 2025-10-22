@@ -43,9 +43,10 @@ import CircularProgress from "@mui/material/CircularProgress";
 import {
   useAppointments,
   usePsychologistConfirmPayment,
+  useCancelAppointment,
 } from "../../services/useAppointments";
-import { usePatients } from "../../services/usePatients";
 import { useToastStore } from "../../stores/useToastStore";
+import { usePatients } from "../../services/usePatients";
 
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
@@ -80,6 +81,23 @@ function PsychologistAppointments() {
 
   const addToast = useToastStore((state) => state.addToast);
   const confirmPaymentMutation = usePsychologistConfirmPayment();
+
+  const cancelAppointmentMutation = useCancelAppointment();
+
+  const handleCancel = async (appointmentId) => {
+    try {
+      await cancelAppointmentMutation.mutateAsync(appointmentId);
+      addToast("Consulta cancelada com sucesso", "success");
+      handleMenuClose();
+    } catch (err) {
+      console.error("Erro ao cancelar consulta:", err);
+      addToast(
+        err.response?.data?.message ||
+          "Erro ao cancelar consulta. Tente novamente.",
+        "error"
+      );
+    }
+  };
 
   const {
     data: appointmentsData,
@@ -162,6 +180,19 @@ function PsychologistAppointments() {
     return appointmentsData.items.map((appointment) => {
       const patient = patientsMap[appointment.patient_id] || {};
 
+      const apptDate = parseServerDateToLocal(appointment.date);
+      const msUntil = apptDate.getTime() - new Date().getTime();
+      const allowedByTime = msUntil >= 12 * 60 * 60 * 1000; // at least 12 hours ahead
+      const allowedByStatus = [
+        "waiting_for_payment",
+        "pending_confirmation",
+      ].includes(appointment.status);
+
+      // do not allow cancel if already canceled or completed
+      const forbiddenStatus = ["canceled", "completed"].includes(
+        appointment.status
+      );
+
       return {
         id: appointment.id,
         datetime: appointment.date,
@@ -177,6 +208,7 @@ function PsychologistAppointments() {
         phone_number: patient.phone_number,
         birth_date: patient.birth_date,
         gender: patient.gender,
+        canCancel: !forbiddenStatus && (allowedByTime || allowedByStatus),
       };
     });
   }, [appointmentsData, patientsData]);
@@ -517,17 +549,18 @@ function PsychologistAppointments() {
                 Marcar como concluída
               </MenuItem>
             )}
-          <MenuItem
-            onClick={() => {
-              handleMenuClose();
-              console.log("Cancelar", selectedConsultation?.id);
-            }}
-          >
-            <ListItemIcon>
-              <CancelIcon sx={{ color: Colors.GREY }} fontSize="small" />
-            </ListItemIcon>
-            Cancelar consulta
-          </MenuItem>
+          {selectedConsultation?.canCancel && (
+            <MenuItem
+              onClick={() => {
+                handleCancel(selectedConsultation.id);
+              }}
+            >
+              <ListItemIcon>
+                <CancelIcon sx={{ color: Colors.GREY }} fontSize="small" />
+              </ListItemIcon>
+              Cancelar consulta
+            </MenuItem>
+          )}
         </Menu>
       </Container>
     </PageContainer>

@@ -1,4 +1,4 @@
-import {React, useState, useMemo } from 'react';
+import { React, useState, useMemo } from "react";
 import {
   ScheduleWrapper,
   ScheduleGrid,
@@ -12,25 +12,45 @@ import {
   DayNumber,
   TimeSlot,
   ScrollBar,
-} from './styles';
+} from "./styles";
 
 const groupSlotsByDay = (slots) => {
   const grouped = new Map();
   if (!slots) return grouped;
 
   slots.forEach((slot) => {
+    if (!slot || !slot.date) {
+      // skip invalid slot entries
+      console.warn("ScheduleComponent: skipping slot with missing date", slot);
+      return;
+    }
+
     const date = new Date(slot.date);
-    const dayKey = date.toISOString().split('T')[0];
-    const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    if (isNaN(date.getTime())) {
+      // invalid date string — skip to avoid RangeError
+      console.warn("ScheduleComponent: skipping slot with invalid date", slot);
+      return;
+    }
+
+    const dayKey = date.toISOString().split("T")[0];
+    const time = date.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
 
     if (!grouped.has(dayKey)) {
       grouped.set(dayKey, []);
     }
     // keep original ISO so parent can get exact datetime
-    grouped.get(dayKey).push({ time, available: slot.available, iso: slot.date });
+    grouped
+      .get(dayKey)
+      .push({ time, available: slot.available, iso: slot.date });
   });
 
-  grouped.forEach(times => times.sort((a, b) => a.time.localeCompare(b.time)));
+  grouped.forEach((times) =>
+    times.sort((a, b) => a.time.localeCompare(b.time))
+  );
   return grouped;
 };
 
@@ -46,10 +66,8 @@ const ScheduleComponent = ({ allSlots, onSlotSelect }) => {
     return date;
   });
 
-
-
   const navigateDays = (amount) => {
-    setDisplayDate(current => {
+    setDisplayDate((current) => {
       const newDate = new Date(current);
       newDate.setDate(newDate.getDate() + amount);
       return newDate;
@@ -64,8 +82,16 @@ const ScheduleComponent = ({ allSlots, onSlotSelect }) => {
         <HeaderRow>
           {visibleDays.map((date) => (
             <DayHeader key={date.toISOString()}>
-              <DayName>{date.toLocaleString('pt-BR', { weekday: 'short' }).replace('.', '')}</DayName>
-              <DayNumber>{date.toLocaleString('pt-BR', { day: 'numeric', month: 'short' }).replace(' de ', ' ')}</DayNumber>
+              <DayName>
+                {date
+                  .toLocaleString("pt-BR", { weekday: "short" })
+                  .replace(".", "")}
+              </DayName>
+              <DayNumber>
+                {date
+                  .toLocaleString("pt-BR", { day: "numeric", month: "short" })
+                  .replace(" de ", " ")}
+              </DayNumber>
             </DayHeader>
           ))}
         </HeaderRow>
@@ -74,13 +100,15 @@ const ScheduleComponent = ({ allSlots, onSlotSelect }) => {
         <SlotsRowContainer>
           <SlotsRow>
             {visibleDays.map((date) => {
-              const dayKey = date.toISOString().split('T')[0];
+              const dayKey = date.toISOString().split("T")[0];
               const daySlots = slotsByDay.get(dayKey) || [];
 
               return (
                 <DayColumn key={dayKey}>
                   {daySlots.map((slotInfo) => {
-                    const isSelected = selectedSlot?.day === dayKey && selectedSlot?.time === slotInfo.time;
+                    const isSelected =
+                      selectedSlot?.day === dayKey &&
+                      selectedSlot?.time === slotInfo.time;
                     return (
                       <TimeSlot
                         key={slotInfo.time}
@@ -92,13 +120,19 @@ const ScheduleComponent = ({ allSlots, onSlotSelect }) => {
                           if (isSame) {
                             // unselect
                             setSelectedSlot(null);
-                            if (typeof onSlotSelect === 'function') onSlotSelect(null);
+                            if (typeof onSlotSelect === "function")
+                              onSlotSelect(null);
                           } else {
                             // set local state
-                            const newSlot = { day: dayKey, time: slotInfo.time, iso: slotInfo.iso };
+                            const newSlot = {
+                              day: dayKey,
+                              time: slotInfo.time,
+                              iso: slotInfo.iso,
+                            };
                             setSelectedSlot(newSlot);
                             // notify parent if provided
-                            if (typeof onSlotSelect === 'function') onSlotSelect(newSlot);
+                            if (typeof onSlotSelect === "function")
+                              onSlotSelect(newSlot);
                           }
                         }}
                       >

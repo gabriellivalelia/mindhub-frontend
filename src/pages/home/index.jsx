@@ -20,7 +20,10 @@ import {
   Info,
 } from "./styles";
 import { SubHeader } from "../../components";
-import { useAppointments } from "../../services/useAppointments";
+import {
+  useAppointments,
+  useCancelAppointment,
+} from "../../services/useAppointments";
 import { usePsychologists } from "../../services/usePsychologists";
 import { usePatients } from "../../services/usePatients";
 import Button from "@mui/material/Button";
@@ -33,6 +36,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import Colors from "../../globalConfigs/globalStyles/colors";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "../../services/useCurrentUser";
+import { useToastStore } from "../../stores/useToastStore";
 import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import Brightness1 from "@mui/icons-material/Brightness1";
 import { FontSizes } from "../../globalConfigs";
@@ -94,6 +98,9 @@ function Home() {
     size: 1000,
   });
 
+  const cancelAppointmentMutation = useCancelAppointment();
+  const addToast = useToastStore((state) => state.addToast);
+
   // Mapear dados das consultas
   const appointments = useMemo(() => {
     if (!appointmentsData?.items) return [];
@@ -115,6 +122,17 @@ function Home() {
       const psychologist = psychologistsMap[appointment.psychologist_id] || {};
       const patient = patientsMap[appointment.patient_id] || {};
 
+      const apptDate = parseServerDateToLocal(appointment.date);
+      const msUntil = apptDate ? apptDate.getTime() - new Date().getTime() : 0;
+      const allowedByTime = msUntil >= 12 * 60 * 60 * 1000; // at least 12 hours ahead
+      const allowedByStatus = [
+        "waiting_for_payment",
+        "pending_confirmation",
+      ].includes(appointment.status);
+      const forbiddenStatus = ["canceled", "completed"].includes(
+        appointment.status
+      );
+
       return {
         id: appointment.id,
         datetime: appointment.date,
@@ -128,15 +146,17 @@ function Home() {
         status: STATUS_MAP[appointment.status] || appointment.status,
         rawStatus: appointment.status,
         price: appointment.pix_payment?.value || 0,
+        canCancel: !forbiddenStatus && (allowedByTime || allowedByStatus),
       };
     });
   }, [appointmentsData, psychologistsData, patientsData]);
 
   const upcoming = useMemo(() => {
     const now = new Date();
+    // Only consider future appointments that are confirmed for the 'next' slot
     const future = (appointments || []).filter((c) => {
       const d = parseServerDateToLocal(c.datetime);
-      return d && d >= now;
+      return d && d >= now && c.rawStatus === "confirmed";
     });
     future.sort((a, b) => {
       const da = parseServerDateToLocal(a.datetime);
@@ -149,9 +169,10 @@ function Home() {
   const next = upcoming[0] || null;
   const lastPast = useMemo(() => {
     const now = new Date();
+    // Only consider past appointments that were completed for the 'lastPast' slot
     const past = (appointments || []).filter((c) => {
       const d = parseServerDateToLocal(c.datetime);
-      return d && d < now;
+      return d && d < now && c.rawStatus === "completed";
     });
     past.sort((a, b) => {
       const da = parseServerDateToLocal(a.datetime);
@@ -193,11 +214,21 @@ function Home() {
     });
   };
 
-  const handleCancel = (appointmentId) => {
+  const handleCancel = async (appointmentId) => {
     handleMenuClose();
-    // Não é possível atualizar state local, pois agora os dados vêm da API
-    // Aqui deveria chamar uma mutation para cancelar a consulta
-    console.log("Cancelling appointment:", appointmentId);
+    try {
+      await cancelAppointmentMutation.mutateAsync(appointmentId);
+      addToast("Consulta cancelada com sucesso", "success");
+      // Recarregar a página para atualizar próxima/última consulta
+      window.location.reload();
+    } catch (err) {
+      console.error("Erro ao cancelar consulta:", err);
+      addToast(
+        err.response?.data?.message ||
+          "Erro ao cancelar consulta. Tente novamente.",
+        "error"
+      );
+    }
   };
 
   if (isLoading) {
@@ -296,13 +327,15 @@ function Home() {
                             variant="contained"
                             disableElevation
                             sx={{
-                              backgroundColor: Colors.GREY,
+                              backgroundColor: c.canCancel
+                                ? Colors.LIGHT_ORANGE
+                                : Colors.GREY,
                               color: Colors.WHITE,
                               textTransform: "none",
                               boxShadow: "none",
                               minWidth: 185,
                             }}
-                            onClick={() => markAsCompleted(c.id)}
+                            onClick={() => c.canCancel && handleCancel(c.id)}
                           >
                             Cancelar consulta
                           </Button>
@@ -372,15 +405,17 @@ function Home() {
                         </ListItemIcon>
                         Reagendar consulta
                       </MenuItem>
-                      <MenuItem onClick={() => handleCancel(next.id)}>
-                        <ListItemIcon>
-                          <CancelIcon
-                            sx={{ color: Colors.GREY }}
-                            fontSize="small"
-                          />
-                        </ListItemIcon>
-                        Cancelar consulta
-                      </MenuItem>
+                      {next.canCancel ? (
+                        <MenuItem onClick={() => handleCancel(next.id)}>
+                          <ListItemIcon>
+                            <CancelIcon
+                              sx={{ color: Colors.GREY }}
+                              fontSize="small"
+                            />
+                          </ListItemIcon>
+                          Cancelar consulta
+                        </MenuItem>
+                      ) : null}
                     </Menu>
                   </ActionsRow>
                 </NextAppointment>
