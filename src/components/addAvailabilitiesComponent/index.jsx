@@ -189,6 +189,7 @@ const AddAvailabilitiesComponent = ({
                     const isMarkedForRemoval = markedForRemoval.has(
                       slotInfo.iso
                     );
+                    const isPast = new Date(slotInfo.iso) < new Date();
 
                     return (
                       <TimeSlot
@@ -197,8 +198,9 @@ const AddAvailabilitiesComponent = ({
                         $selected={isSelected && !isMarkedForRemoval}
                         $readonly={isBooked}
                         $markedForRemoval={isMarkedForRemoval}
+                        $isPast={isPast}
                         onMouseDown={() => {
-                          if (isBooked) return; // Slots agendados não podem ser alterados
+                          if (isBooked || isPast) return; // Slots agendados e passados não podem ser alterados
 
                           setIsMouseDown(true);
 
@@ -292,7 +294,7 @@ const AddAvailabilitiesComponent = ({
                         }}
                         onMouseEnter={() => {
                           if (!isMouseDown) return;
-                          if (isBooked) return;
+                          if (isBooked || isPast) return;
                           if (isExistingAvailable) return; // Não arrastar em slots existentes
 
                           // Apenas para slots novos

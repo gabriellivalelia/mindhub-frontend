@@ -68,6 +68,18 @@ function WriteContentRoute() {
 
 function HomeRoute() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isLoading, isError } = useCurrentUser();
+
+  // Se está autenticado mas carregando validação, mostra PreLogin ou loading
+  if (isAuthenticated && isLoading) {
+    return <PreLogin />; // ou um componente de loading
+  }
+
+  // Se erro na validação (token expirado), mostra PreLogin
+  if (isAuthenticated && isError) {
+    return <PreLogin />;
+  }
+
   return isAuthenticated ? <Home /> : <PreLogin />;
 }
 

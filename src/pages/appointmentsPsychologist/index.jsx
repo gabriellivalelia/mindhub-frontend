@@ -15,6 +15,7 @@ import {
   PatientName,
   ConsultationDateTime,
   ConsultationStatus,
+  StatusAndActionsContainer,
   MoreInfoButton,
   FullWidth,
   RowBetween,
@@ -44,9 +45,11 @@ import {
   useAppointments,
   usePsychologistConfirmPayment,
   useCancelAppointment,
+  useCompleteAppointment,
 } from "../../services/useAppointments";
 import { useToastStore } from "../../stores/useToastStore";
 import { usePatients } from "../../services/usePatients";
+import { useCurrentUser } from "../../services/useCurrentUser";
 
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
@@ -81,8 +84,9 @@ function PsychologistAppointments() {
 
   const addToast = useToastStore((state) => state.addToast);
   const confirmPaymentMutation = usePsychologistConfirmPayment();
-
   const cancelAppointmentMutation = useCancelAppointment();
+  const completeAppointmentMutation = useCompleteAppointment();
+  const { data: currentUser } = useCurrentUser();
 
   const handleCancel = async (appointmentId) => {
     try {
@@ -99,6 +103,21 @@ function PsychologistAppointments() {
     }
   };
 
+  const handleComplete = async (appointmentId) => {
+    try {
+      await completeAppointmentMutation.mutateAsync(appointmentId);
+      addToast("Consulta marcada como concluída", "success");
+      handleMenuClose();
+    } catch (err) {
+      console.error("Erro ao marcar consulta como concluída:", err);
+      addToast(
+        err.response?.data?.message ||
+          "Erro ao marcar consulta como concluída. Tente novamente.",
+        "error"
+      );
+    }
+  };
+
   const {
     data: appointmentsData,
     isLoading,
@@ -109,6 +128,7 @@ function PsychologistAppointments() {
     start_date: startDate,
     end_date: endDate,
     status: statusFilter,
+    psychologist_id: currentUser?.id, // Filtrar apenas consultas deste psicólogo
   });
 
   // Buscar todos os pacientes para ter disponível nos mapeamentos
@@ -193,6 +213,14 @@ function PsychologistAppointments() {
         appointment.status
       );
 
+      const canCancel = !forbiddenStatus && (allowedByTime || allowedByStatus);
+      const canConfirmPayment = appointment.status === "pending_confirmation";
+      const canComplete =
+        appointment.status === "confirmed" && apptDate < new Date();
+
+      // Verifica se há alguma opção disponível no menu
+      const hasMenuOptions = canConfirmPayment || canComplete || canCancel;
+
       return {
         id: appointment.id,
         datetime: appointment.date,
@@ -208,7 +236,8 @@ function PsychologistAppointments() {
         phone_number: patient.phone_number,
         birth_date: patient.birth_date,
         gender: patient.gender,
-        canCancel: !forbiddenStatus && (allowedByTime || allowedByStatus),
+        canCancel,
+        hasMenuOptions,
       };
     });
   }, [appointmentsData, patientsData]);
@@ -220,7 +249,6 @@ function PsychologistAppointments() {
       return true;
     });
   }, [mappedAppointments, searchTerm]);
-
   return (
     <PageContainer>
       <SubHeader text="Minhas Consultas" />
@@ -399,23 +427,22 @@ function PsychologistAppointments() {
               </Box>
             ) : (
               <Stack alignItems="flex-start" spacing={2}>
-                {filteredAppointments
-                  ?.slice((page - 1) * pageSize, page * pageSize)
-                  .map((consultation) => (
-                    <ConsultationCard key={consultation.id}>
-                      <PatientPictureContainer>
-                        <PatientPicture
-                          src={consultation.patientPicture}
-                          alt={consultation.patient}
-                        />
-                      </PatientPictureContainer>
-                      <ConsultationInfo>
-                        <PatientName>{consultation.patient}</PatientName>
-                        <ConsultationDateTime>
-                          <Schedule sx={{ fontSize: FontSizes.MEDIUM }} />{" "}
-                          {formatDateTime(consultation.datetime)}
-                        </ConsultationDateTime>
-                      </ConsultationInfo>
+                {filteredAppointments?.map((consultation) => (
+                  <ConsultationCard key={consultation.id}>
+                    <PatientPictureContainer>
+                      <PatientPicture
+                        src={consultation.patientPicture}
+                        alt={consultation.patient}
+                      />
+                    </PatientPictureContainer>
+                    <ConsultationInfo>
+                      <PatientName>{consultation.patient}</PatientName>
+                      <ConsultationDateTime>
+                        <Schedule sx={{ fontSize: FontSizes.MEDIUM }} />{" "}
+                        {formatDateTime(consultation.datetime)}
+                      </ConsultationDateTime>
+                    </ConsultationInfo>
+                    <StatusAndActionsContainer>
                       <ConsultationStatus status={consultation.status}>
                         <Brightness1
                           sx={{
@@ -425,27 +452,31 @@ function PsychologistAppointments() {
                         />{" "}
                         {consultation.status}
                       </ConsultationStatus>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMenuOpen(e, consultation)}
-                        sx={{ color: Colors.GREY, p: "6px" }}
-                        aria-controls={
-                          menuOpen ? "psychologist-appointment-menu" : undefined
-                        }
-                        aria-haspopup="true"
-                        aria-expanded={menuOpen ? "true" : undefined}
-                      >
-                        <MoreHoriz />
-                      </IconButton>
-                    </ConsultationCard>
-                  ))}
+                      {consultation.hasMenuOptions ? (
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleMenuOpen(e, consultation)}
+                          sx={{ color: Colors.GREY, p: "6px" }}
+                          aria-controls={
+                            menuOpen
+                              ? "psychologist-appointment-menu"
+                              : undefined
+                          }
+                          aria-haspopup="true"
+                          aria-expanded={menuOpen ? "true" : undefined}
+                        >
+                          <MoreHoriz />
+                        </IconButton>
+                      ) : (
+                        <Box sx={{ width: "34px", height: "34px" }} />
+                      )}
+                    </StatusAndActionsContainer>
+                  </ConsultationCard>
+                ))}
 
                 <RowBetween>
                   <Pagination
-                    count={Math.max(
-                      1,
-                      Math.ceil((filteredAppointments?.length || 0) / pageSize)
-                    )}
+                    count={Math.max(1, appointmentsData?.total_pages || 1)}
                     page={page}
                     onChange={(e, value) => setPage(value)}
                     sx={{
@@ -535,10 +566,8 @@ function PsychologistAppointments() {
             parseServerDateToLocal(selectedConsultation?.datetime) <
               new Date() && (
               <MenuItem
-                onClick={() => {
-                  handleMenuClose();
-                  console.log("Marcar como concluída", selectedConsultation);
-                }}
+                onClick={() => handleComplete(selectedConsultation.id)}
+                disabled={completeAppointmentMutation.isPending}
               >
                 <ListItemIcon>
                   <TaskAlt
@@ -546,7 +575,9 @@ function PsychologistAppointments() {
                     fontSize="small"
                   />
                 </ListItemIcon>
-                Marcar como concluída
+                {completeAppointmentMutation.isPending
+                  ? "Marcando..."
+                  : "Marcar como concluída"}
               </MenuItem>
             )}
           {selectedConsultation?.canCancel && (

@@ -661,7 +661,7 @@ function ScheduleNewAppointment() {
                     <ProfileContainer>
                       <ProfessionalPictureContainer>
                         <ProfessionalPicture
-                          src={psychologist.profile_picture.src}
+                          src={psychologist.profile_picture?.src}
                           alt={psychologist.name}
                         />
                       </ProfessionalPictureContainer>
@@ -831,7 +831,7 @@ function ScheduleNewAppointment() {
                 <div>
                   <DialogProfile>
                     <DialogAvatar
-                      src={dialogData.psychologist.profile_picture.src}
+                      src={dialogData.psychologist.profile_picture?.src}
                       alt={dialogData.psychologist.name}
                     />
                     <DialogInfo>

@@ -200,6 +200,18 @@ export const TimeSlot = styled.div`
       border: 1px solid ${Colors.GREY};
     `}
 
+  ${(props) =>
+    props.$isPast &&
+    !props.$readonly &&
+    css`
+      background-color: ${Colors.LIGHT_GREY};
+      color: ${Colors.GREY};
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+      border: 1px solid ${Colors.GREY};
+    `}
+
   @media (max-width: ${BreakPoints.TABLET}) {
     padding: 6px 4px;
     font-size: ${FontSizes.SMALL};

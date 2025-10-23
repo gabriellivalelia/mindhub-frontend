@@ -68,19 +68,34 @@ export const ConsultationsContainer = styled.div`
 `;
 
 export const ConsultationCard = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 2fr 1.5fr auto;
+  gap: 1rem;
+  align-items: center;
   min-height: 90px;
   width: 100%;
   background-color: ${Colors.WHITE};
-  flex-direction: row;
-  align-items: center;
   border-radius: 8px;
   padding: 0.6rem 0.8rem;
-  gap: 0.5rem;
+
   @media (max-width: ${BreakPoints.TABLET}) {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.8rem;
     padding: 0.8rem;
+  }
+`;
+
+export const StatusAndActionsContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+
+  @media (max-width: ${BreakPoints.TABLET}) {
+    grid-column: 1 / -1;
+    justify-content: space-between;
   }
 `;
 export const SearchContainer = styled.div`
@@ -113,10 +128,9 @@ export const ProfessionalPicture = styled.img`
 `;
 
 export const ConsultationInfo = styled.div`
-  flex: 1;
   display: flex;
   flex-direction: column;
-  margin-left: 1rem;
+  gap: 0.25rem;
   min-width: 0;
 `;
 
@@ -137,20 +151,18 @@ export const ConsultationDateTime = styled.div`
 `;
 
 export const ConsultationStatus = styled.div`
-  flex: 0 0 auto;
   display: flex;
   flex-direction: row;
   justify-content: center;
-  text-align: center;
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.8rem;
   border-radius: 12px;
   font-size: ${FontSizes.SMALL};
-  width: 30%;
+  white-space: nowrap;
+
   @media (max-width: ${BreakPoints.TABLET}) {
-    align-self: flex-start;
-    margin-top: 0.5rem;
+    justify-content: flex-start;
   }
 `;
 

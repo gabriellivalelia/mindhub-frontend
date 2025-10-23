@@ -63,6 +63,19 @@ api.interceptors.response.use(
       });
     }
 
+    // Status 401 (Não autorizado) - token inválido/expirado
+    if (error.response.status === 401) {
+      // Limpar autenticação
+      useAuthStore.getState().clearAuth();
+
+      return Promise.reject({
+        code: "UNAUTHORIZED",
+        message: "Sessão expirada. Faça login novamente.",
+        status: 401,
+        response: error.response,
+      });
+    }
+
     // Status 403 (Proibido) - sem permissão
     if (error.response.status === 403) {
       return Promise.reject({
@@ -97,6 +110,7 @@ api.interceptors.response.use(
         error.response.data?.message || "Erro ao processar sua solicitação.",
       status: error.response.status,
       data: error.response.data,
+      response: error.response,
     });
   }
 );

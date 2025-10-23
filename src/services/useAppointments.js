@@ -168,7 +168,7 @@ export function useMarkPaymentSent() {
   return useMutation({
     mutationFn: async (appointmentId) => {
       const response = await api.post(
-        `/patients/appointments/${appointmentId}/mark-payment-sent`
+        `/appointments/${appointmentId}/mark-payment-sent`
       );
       return response.data;
     },
@@ -187,7 +187,7 @@ export function usePsychologistConfirmPayment() {
   return useMutation({
     mutationFn: async (appointmentId) => {
       const response = await api.post(
-        `/psychologists/appointments/${appointmentId}/confirm-payment`
+        `/appointments/${appointmentId}/confirm-payment`
       );
       return response.data;
     },
@@ -206,7 +206,7 @@ export function useCompleteAppointment() {
   return useMutation({
     mutationFn: async (appointmentId) => {
       const response = await api.post(
-        `/psychologists/appointments/${appointmentId}/complete`
+        `/appointments/${appointmentId}/complete`
       );
       return response.data;
     },

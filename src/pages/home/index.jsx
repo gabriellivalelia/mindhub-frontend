@@ -23,6 +23,8 @@ import { SubHeader } from "../../components";
 import {
   useAppointments,
   useCancelAppointment,
+  useCompleteAppointment,
+  usePsychologistConfirmPayment,
 } from "../../services/useAppointments";
 import { usePsychologists } from "../../services/usePsychologists";
 import { usePatients } from "../../services/usePatients";
@@ -84,6 +86,8 @@ function Home() {
   const { data: appointmentsData, isLoading } = useAppointments({
     page: 1,
     size: 1000, // Buscar todas para filtrar localmente
+    ...(user?.type === "psychologist" && { psychologist_id: user?.id }),
+    ...(user?.type === "patient" && { patient_id: user?.id }),
   });
 
   // Buscar psicólogos (para pacientes)
@@ -99,6 +103,8 @@ function Home() {
   });
 
   const cancelAppointmentMutation = useCancelAppointment();
+  const completeAppointmentMutation = useCompleteAppointment();
+  const confirmPaymentMutation = usePsychologistConfirmPayment();
   const addToast = useToastStore((state) => state.addToast);
 
   // Mapear dados das consultas
@@ -133,6 +139,12 @@ function Home() {
         appointment.status
       );
 
+      // Permitir reagendar apenas se não cancelada/realizada E com pelo menos 12h
+      const canReschedule =
+        !forbiddenStatus &&
+        allowedByTime &&
+        ["confirmed", "pending_confirmation"].includes(appointment.status);
+
       return {
         id: appointment.id,
         datetime: appointment.date,
@@ -147,15 +159,20 @@ function Home() {
         rawStatus: appointment.status,
         price: appointment.pix_payment?.value || 0,
         canCancel: !forbiddenStatus && (allowedByTime || allowedByStatus),
+        canReschedule: canReschedule,
       };
     });
   }, [appointmentsData, psychologistsData, patientsData]);
 
   const upcoming = useMemo(() => {
     const now = new Date();
-    // Only consider future appointments that are confirmed for the 'next' slot
+    // For patients: any status except canceled
+    // For psychologists: only confirmed appointments
     const future = (appointments || []).filter((c) => {
       const d = parseServerDateToLocal(c.datetime);
+      if (user?.type === "patient") {
+        return d && d >= now && c.rawStatus !== "canceled";
+      }
       return d && d >= now && c.rawStatus === "confirmed";
     });
     future.sort((a, b) => {
@@ -164,7 +181,7 @@ function Home() {
       return (da?.getTime() || 0) - (db?.getTime() || 0);
     });
     return future;
-  }, [appointments]);
+  }, [appointments, user?.type]);
 
   const next = upcoming[0] || null;
   const lastPast = useMemo(() => {
@@ -190,7 +207,8 @@ function Home() {
     return (appointments || [])
       .filter((c) => {
         const dt = parseServerDateToLocal(c.datetime);
-        return dt && dt >= start && dt < end;
+        // Excluir consultas canceladas
+        return dt && dt >= start && dt < end && c.rawStatus !== "canceled";
       })
       .sort((a, b) => {
         const da = parseServerDateToLocal(a.datetime);
@@ -199,8 +217,36 @@ function Home() {
       });
   }, [user?.type, appointments]);
 
-  const markAsCompleted = (id) => {
-    console.log("Marking as completed:", id);
+  const markAsCompleted = async (id) => {
+    try {
+      await completeAppointmentMutation.mutateAsync(id);
+      addToast("Consulta marcada como concluída", "success");
+      // Recarregar a página para atualizar a lista
+      window.location.reload();
+    } catch (err) {
+      console.error("Erro ao marcar consulta como concluída:", err);
+      addToast(
+        err.response?.data?.message ||
+          "Erro ao marcar consulta como concluída. Tente novamente.",
+        "error"
+      );
+    }
+  };
+
+  const confirmPayment = async (id) => {
+    try {
+      await confirmPaymentMutation.mutateAsync(id);
+      addToast("Pagamento confirmado com sucesso", "success");
+      // Recarregar a página para atualizar a lista
+      window.location.reload();
+    } catch (err) {
+      console.error("Erro ao confirmar pagamento:", err);
+      addToast(
+        err.response?.data?.message ||
+          "Erro ao confirmar pagamento. Tente novamente.",
+        "error"
+      );
+    }
   };
 
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
@@ -307,10 +353,12 @@ function Home() {
                           />
                           {c.status}
                         </RightText>
-                        {new Date(c.datetime) < new Date() ? (
+                        {c.rawStatus === "confirmed" &&
+                        parseServerDateToLocal(c.datetime) < new Date() ? (
                           <Button
                             variant="contained"
                             disableElevation
+                            disabled={completeAppointmentMutation.isPending}
                             sx={{
                               backgroundColor: Colors.ORANGE,
                               color: Colors.WHITE,
@@ -320,7 +368,27 @@ function Home() {
                             }}
                             onClick={() => markAsCompleted(c.id)}
                           >
-                            Marcar como concluída
+                            {completeAppointmentMutation.isPending
+                              ? "Marcando..."
+                              : "Marcar como concluída"}
+                          </Button>
+                        ) : c.rawStatus === "pending_confirmation" ? (
+                          <Button
+                            variant="contained"
+                            disableElevation
+                            disabled={confirmPaymentMutation.isPending}
+                            sx={{
+                              backgroundColor: Colors.ORANGE,
+                              color: Colors.WHITE,
+                              textTransform: "none",
+                              boxShadow: "none",
+                              minWidth: 185,
+                            }}
+                            onClick={() => confirmPayment(c.id)}
+                          >
+                            {confirmPaymentMutation.isPending
+                              ? "Confirmando..."
+                              : "Confirmar pagamento"}
                           </Button>
                         ) : (
                           <Button
@@ -376,18 +444,20 @@ function Home() {
                     </Info>
                   </Row>
                   <ActionsRow>
-                    <IconButton
-                      size="small"
-                      onClick={handleMenuOpen}
-                      sx={{ color: Colors.GREY }}
-                      aria-controls={
-                        menuOpen ? "next-appointment-menu" : undefined
-                      }
-                      aria-haspopup="true"
-                      aria-expanded={menuOpen ? "true" : undefined}
-                    >
-                      <MoreHoriz />
-                    </IconButton>
+                    {(next.canReschedule || next.canCancel) && (
+                      <IconButton
+                        size="small"
+                        onClick={handleMenuOpen}
+                        sx={{ color: Colors.GREY }}
+                        aria-controls={
+                          menuOpen ? "next-appointment-menu" : undefined
+                        }
+                        aria-haspopup="true"
+                        aria-expanded={menuOpen ? "true" : undefined}
+                      >
+                        <MoreHoriz />
+                      </IconButton>
+                    )}
                     <Menu
                       id="next-appointment-menu"
                       anchorEl={anchorEl}
@@ -396,15 +466,17 @@ function Home() {
                       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                       transformOrigin={{ vertical: "top", horizontal: "right" }}
                     >
-                      <MenuItem onClick={() => handleReschedule(next)}>
-                        <ListItemIcon>
-                          <ScheduleIcon
-                            sx={{ color: Colors.LIGHT_ORANGE }}
-                            fontSize="small"
-                          />
-                        </ListItemIcon>
-                        Reagendar consulta
-                      </MenuItem>
+                      {next.canReschedule && (
+                        <MenuItem onClick={() => handleReschedule(next)}>
+                          <ListItemIcon>
+                            <ScheduleIcon
+                              sx={{ color: Colors.LIGHT_ORANGE }}
+                              fontSize="small"
+                            />
+                          </ListItemIcon>
+                          Reagendar consulta
+                        </MenuItem>
+                      )}
                       {next.canCancel ? (
                         <MenuItem onClick={() => handleCancel(next.id)}>
                           <ListItemIcon>

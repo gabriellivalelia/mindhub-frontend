@@ -14,6 +14,7 @@ import {
   ProfessionalName,
   ConsultationDateTime,
   ConsultationStatus,
+  StatusAndActionsContainer,
   MoreInfoButton,
   SearchContainer,
   SearchIconWrapper,
@@ -37,6 +38,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useToastStore } from "../../stores/useToastStore";
 import { usePsychologists } from "../../services/usePsychologists";
+import { useCurrentUser } from "../../services/useCurrentUser";
 
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
@@ -94,6 +96,7 @@ const getStatusColor = (status) => {
 
 function AppointmentsPatient() {
   const navigate = useNavigate();
+  const { data: currentUser } = useCurrentUser();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [pageSize, setPageSize] = useState(5);
   const [page, setPage] = useState(1);
@@ -115,6 +118,7 @@ function AppointmentsPatient() {
     start_date: startDate,
     end_date: endDate,
     status: statusFilter,
+    patient_id: currentUser?.id, // Filtrar apenas consultas deste paciente
   });
 
   const cancelAppointmentMutation = useCancelAppointment();
@@ -193,6 +197,18 @@ function AppointmentsPatient() {
         appointment.status
       );
 
+      // Permitir reagendar apenas se não cancelada/realizada E com pelo menos 12h
+      const canReschedule =
+        !forbiddenStatus &&
+        allowedByTime &&
+        ["confirmed", "pending_confirmation"].includes(appointment.status);
+
+      const canPayment = appointment.status === "waiting_for_payment";
+      const hasMenuOptions =
+        canPayment ||
+        canReschedule ||
+        (!forbiddenStatus && (allowedByTime || allowedByStatus));
+
       return {
         id: appointment.id,
         datetime: appointment.date,
@@ -209,6 +225,8 @@ function AppointmentsPatient() {
         specialties: psychologist.specialties || [],
         approaches: psychologist.approaches || [],
         canCancel: !forbiddenStatus && (allowedByTime || allowedByStatus),
+        canReschedule: canReschedule,
+        hasMenuOptions: hasMenuOptions,
       };
     });
   }, [appointmentsData, psychologistsData]);
@@ -398,25 +416,24 @@ function AppointmentsPatient() {
               </Box>
             ) : (
               <Stack alignItems="flex-start" spacing={2}>
-                {filteredAppointments
-                  ?.slice((page - 1) * pageSize, page * pageSize)
-                  .map((consultation) => (
-                    <ConsultationCard key={consultation.id}>
-                      <ProfessionalPictureContainer>
-                        <ProfessionalPicture
-                          src={consultation.professionalPicture}
-                          alt={consultation.professional}
-                        />
-                      </ProfessionalPictureContainer>
-                      <ConsultationInfo>
-                        <ProfessionalName>
-                          {consultation.professional}
-                        </ProfessionalName>
-                        <ConsultationDateTime>
-                          <Schedule sx={{ fontSize: FontSizes.MEDIUM }} />{" "}
-                          {formatDateTime(consultation.datetime)}
-                        </ConsultationDateTime>
-                      </ConsultationInfo>
+                {filteredAppointments?.map((consultation) => (
+                  <ConsultationCard key={consultation.id}>
+                    <ProfessionalPictureContainer>
+                      <ProfessionalPicture
+                        src={consultation.professionalPicture}
+                        alt={consultation.professional}
+                      />
+                    </ProfessionalPictureContainer>
+                    <ConsultationInfo>
+                      <ProfessionalName>
+                        {consultation.professional}
+                      </ProfessionalName>
+                      <ConsultationDateTime>
+                        <Schedule sx={{ fontSize: FontSizes.MEDIUM }} />{" "}
+                        {formatDateTime(consultation.datetime)}
+                      </ConsultationDateTime>
+                    </ConsultationInfo>
+                    <StatusAndActionsContainer>
                       <ConsultationStatus status={consultation.status}>
                         <Brightness1
                           sx={{
@@ -426,29 +443,29 @@ function AppointmentsPatient() {
                         />{" "}
                         {consultation.status}
                       </ConsultationStatus>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMenuOpen(e, consultation)}
-                        sx={{ color: Colors.GREY, p: "6px" }}
-                        aria-controls={
-                          menuOpen ? "next-appointment-menu" : undefined
-                        }
-                        aria-haspopup="true"
-                        aria-expanded={menuOpen ? "true" : undefined}
-                      >
-                        <MoreHoriz />
-                      </IconButton>
-                    </ConsultationCard>
-                  ))}
+                      {consultation.hasMenuOptions ? (
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleMenuOpen(e, consultation)}
+                          sx={{ color: Colors.GREY, p: "6px" }}
+                          aria-controls={
+                            menuOpen ? "next-appointment-menu" : undefined
+                          }
+                          aria-haspopup="true"
+                          aria-expanded={menuOpen ? "true" : undefined}
+                        >
+                          <MoreHoriz />
+                        </IconButton>
+                      ) : (
+                        <Box sx={{ width: "34px", height: "34px" }} />
+                      )}
+                    </StatusAndActionsContainer>
+                  </ConsultationCard>
+                ))}
 
                 <RowBetween>
                   <Pagination
-                    count={Math.max(
-                      1,
-                      Math.ceil((filteredAppointments?.length || 0) / pageSize)
-                    )}
-                    // hideNextButton={!appointmentsData?.hasNext}
-                    // hidePrevButton
+                    count={Math.max(1, appointmentsData?.total_pages || 1)}
                     page={page}
                     onChange={(e, value) => setPage(value)}
                     sx={{
@@ -549,29 +566,31 @@ function AppointmentsPatient() {
               Efetuar pagamento
             </MenuItem>
           )}
-          <MenuItem
-            onClick={() => {
-              handleMenuClose();
-              // open reschedule modal using ScheduleComponent
-              // invalidate psychologist data to fetch fresh availabilities
-              const pid = selectedConsultation?.psychologist_id;
-              if (pid)
-                queryClient.invalidateQueries({
-                  queryKey: ["psychologist", pid],
-                });
-              setRescheduleTarget(selectedConsultation);
-              setSelectedRescheduleSlot(null);
-              setRescheduleOpen(true);
-            }}
-          >
-            <ListItemIcon>
-              <ManageHistory
-                sx={{ color: Colors.LIGHT_ORANGE }}
-                fontSize="small"
-              />
-            </ListItemIcon>
-            Reagendar consulta
-          </MenuItem>
+          {selectedConsultation?.canReschedule && (
+            <MenuItem
+              onClick={() => {
+                handleMenuClose();
+                // open reschedule modal using ScheduleComponent
+                // invalidate psychologist data to fetch fresh availabilities
+                const pid = selectedConsultation?.psychologist_id;
+                if (pid)
+                  queryClient.invalidateQueries({
+                    queryKey: ["psychologist", pid],
+                  });
+                setRescheduleTarget(selectedConsultation);
+                setSelectedRescheduleSlot(null);
+                setRescheduleOpen(true);
+              }}
+            >
+              <ListItemIcon>
+                <ManageHistory
+                  sx={{ color: Colors.LIGHT_ORANGE }}
+                  fontSize="small"
+                />
+              </ListItemIcon>
+              Reagendar consulta
+            </MenuItem>
+          )}
           {selectedConsultation?.canCancel && (
             <MenuItem
               onClick={() => {
