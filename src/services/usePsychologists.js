@@ -8,6 +8,7 @@ import { useCurrentUser } from "./useCurrentUser";
 export function useCurrentPsychologist() {
   const { data: user } = useCurrentUser();
   const psychologistId = user?.id;
+  const isPsychologist = user?.type === "psychologist";
 
   return useQuery({
     queryKey: ["currentPsychologist", psychologistId],
@@ -15,7 +16,7 @@ export function useCurrentPsychologist() {
       const response = await api.get(`/psychologists/${psychologistId}`);
       return response.data;
     },
-    enabled: !!psychologistId,
+    enabled: !!psychologistId && isPsychologist,
     staleTime: 5 * 60 * 1000,
   });
 }

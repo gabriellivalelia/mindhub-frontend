@@ -8,6 +8,7 @@ import { useCurrentUser } from "./useCurrentUser";
 export function useCurrentPatient() {
   const { data: user } = useCurrentUser();
   const patientId = user?.id;
+  const isPatient = user?.type === "patient";
 
   return useQuery({
     queryKey: ["currentPatient", patientId],
@@ -15,7 +16,7 @@ export function useCurrentPatient() {
       const response = await api.get(`/patients/${patientId}`);
       return response.data;
     },
-    enabled: !!patientId,
+    enabled: !!patientId && isPatient,
     staleTime: 5 * 60 * 1000,
   });
 }
