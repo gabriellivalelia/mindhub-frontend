@@ -60,4 +60,37 @@ export const ContentExcerpt = styled.div`
   font-size: ${FontSizes.SMALL};
 `;
 
+export const SearchContainer = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+`;
+
+export const SearchIconWrapper = styled.div`
+  position: absolute;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  color: ${Colors.GREY};
+`;
+
+export const SearchBar = styled.input`
+  flex: 1;
+  padding: 0.6rem 0.8rem 0.6rem 2.5rem;
+  border-radius: 6px;
+  border: 2px solid ${Colors.ORANGE};
+  background: transparent;
+  width: 100%;
+
+  &:focus {
+    outline: none;
+    border-color: ${Colors.ORANGE};
+  }
+
+  &::placeholder {
+    color: ${Colors.GREY};
+  }
+`;
+
 export default {};

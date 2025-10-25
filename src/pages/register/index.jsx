@@ -174,14 +174,63 @@ function Register() {
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
   } = useForm({
     resolver: zodResolver(currentSchema),
+    defaultValues: {
+      name: "",
+      birthDate: "",
+      cpf: "",
+      phone: "",
+      gender: null,
+      state: null,
+      city: null,
+      email: "",
+      confirmedEmail: "",
+      password: "",
+      confirmedPassword: "",
+      ...(userType === "psychologist" && {
+        crp: "",
+        valuePerAppointment: "",
+        approaches: null,
+        specialties: null,
+        audiences: null,
+        description: "",
+      }),
+    },
   });
 
   useEffect(() => {
-    reset();
+    // Reset com valores padrão limpos
+    reset({
+      name: "",
+      birthDate: "",
+      cpf: "",
+      phone: "",
+      gender: null,
+      state: null,
+      city: null,
+      email: "",
+      confirmedEmail: "",
+      password: "",
+      confirmedPassword: "",
+      ...(userType === "psychologist" && {
+        crp: "",
+        valuePerAppointment: "",
+        approaches: null,
+        specialties: null,
+        audiences: null,
+        description: "",
+      }),
+    });
     setRegisterError("");
+    setSelectedState(null);
   }, [userType, reset]);
+
+  // Resetar cidade quando estado muda
+  useEffect(() => {
+    setValue("city", null);
+  }, [selectedState, setValue]);
 
   async function createUser(userData) {
     setLoading(true);

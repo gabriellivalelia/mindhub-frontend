@@ -18,15 +18,18 @@ import { useCurrentUser } from "../../services/useCurrentUser";
 
 function Header() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const { data: user } = useCurrentUser();
+  const { data: user, isError } = useCurrentUser();
   const navigate = useNavigate();
+
+  // Considera autenticado apenas se tiver token E user válido
+  const isActuallyAuthenticated = isAuthenticated && user && !isError;
 
   return (
     <MainContainer>
       <LogoContainer>
         <Logo src={LogoSrc} />
       </LogoContainer>
-      <NavBar authenticated={isAuthenticated}>
+      <NavBar authenticated={isActuallyAuthenticated}>
         <Link to="/">
           <NavBarHover>Home</NavBarHover>
         </Link>
@@ -37,11 +40,11 @@ function Header() {
           <NavBarHover>Conteúdos</NavBarHover>
         </Link>
       </NavBar>
-      <ButtonContainer authenticated={isAuthenticated}>
+      <ButtonContainer authenticated={isActuallyAuthenticated}>
         <Button onClick={() => navigate("/login")}>Entrar</Button>
       </ButtonContainer>
-      <ImageProfileContainer authenticated={isAuthenticated}>
-        {isAuthenticated && (
+      <ImageProfileContainer authenticated={isActuallyAuthenticated}>
+        {isActuallyAuthenticated && (
           <AccountMenu avatarSrc={user?.profile_picture?.src} />
         )}
       </ImageProfileContainer>

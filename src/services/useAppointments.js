@@ -14,7 +14,32 @@ export function useAppointments(params = {}) {
   return useQuery({
     queryKey: ["appointments", params],
     queryFn: async () => {
-      const response = await api.get("/appointments", { params });
+      // Converter datas de string (YYYY-MM-DD) para datetime ISO (YYYY-MM-DDTHH:mm:ss)
+      const processedParams = { ...params };
+
+      if (
+        processedParams.start_date &&
+        typeof processedParams.start_date === "string"
+      ) {
+        // Adicionar tempo 00:00:00 se for apenas data
+        if (processedParams.start_date.length === 10) {
+          processedParams.start_date = `${processedParams.start_date}T00:00:00`;
+        }
+      }
+
+      if (
+        processedParams.end_date &&
+        typeof processedParams.end_date === "string"
+      ) {
+        // Adicionar tempo 23:59:59 se for apenas data
+        if (processedParams.end_date.length === 10) {
+          processedParams.end_date = `${processedParams.end_date}T23:59:59`;
+        }
+      }
+
+      const response = await api.get("/appointments", {
+        params: processedParams,
+      });
       return response.data;
     },
   });

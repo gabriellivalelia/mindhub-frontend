@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import Select from "react-select";
 import { LoadingOutlined } from "@ant-design/icons";
 import { useToastStore } from "../../stores/useToastStore";
@@ -103,6 +104,7 @@ const customStyles = {
 };
 
 function EditProfile() {
+  const navigate = useNavigate();
   const addToast = useToastStore((state) => state.addToast);
 
   // Buscar dados básicos do usuário para determinar o tipo
@@ -396,6 +398,11 @@ function EditProfile() {
       }
 
       addToast("Perfil atualizado com sucesso!", "success");
+
+      // Navegar de volta para a home após salvar
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
 
