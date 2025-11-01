@@ -24,7 +24,6 @@ export const authService = {
 
       useAuthStore.getState().setToken(accessToken);
 
-      // User será carregado pelo hook useCurrentUser
       return {
         success: true,
       };

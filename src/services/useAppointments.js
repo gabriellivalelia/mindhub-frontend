@@ -21,7 +21,6 @@ export function useAppointments(params = {}) {
         processedParams.start_date &&
         typeof processedParams.start_date === "string"
       ) {
-        // Adicionar tempo 00:00:00 se for apenas data
         if (processedParams.start_date.length === 10) {
           processedParams.start_date = `${processedParams.start_date}T00:00:00`;
         }
@@ -31,7 +30,6 @@ export function useAppointments(params = {}) {
         processedParams.end_date &&
         typeof processedParams.end_date === "string"
       ) {
-        // Adicionar tempo 23:59:59 se for apenas data
         if (processedParams.end_date.length === 10) {
           processedParams.end_date = `${processedParams.end_date}T23:59:59`;
         }
@@ -56,7 +54,7 @@ export function useAppointment(appointmentId) {
       const response = await api.get(`/appointments/${appointmentId}`);
       return response.data;
     },
-    enabled: !!appointmentId, // Só executa se houver ID
+    enabled: !!appointmentId,
   });
 }
 

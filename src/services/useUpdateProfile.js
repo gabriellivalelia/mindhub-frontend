@@ -11,7 +11,6 @@ export function useUpdatePatient() {
     mutationFn: async (data) => {
       const formData = new FormData();
 
-      // Adicionar campos apenas se fornecidos
       if (data.name) formData.append("name", data.name);
       if (data.email) formData.append("email", data.email);
       if (data.phone) formData.append("phone_number", data.phone);
@@ -47,7 +46,6 @@ export function useUpdatePsychologist() {
     mutationFn: async (data) => {
       const formData = new FormData();
 
-      // Adicionar campos apenas se fornecidos
       if (data.name) formData.append("name", data.name);
       if (data.email) formData.append("email", data.email);
       if (data.phone) formData.append("phone_number", data.phone);
@@ -62,8 +60,6 @@ export function useUpdatePsychologist() {
         formData.append("profile_picture", data.profilePicture);
       if (data.deleteProfilePicture)
         formData.append("delete_profile_picture", "true");
-
-      // Arrays
       if (data.specialties && Array.isArray(data.specialties)) {
         data.specialties.forEach((id) => {
           formData.append("specialty_ids", id);

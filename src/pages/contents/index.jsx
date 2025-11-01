@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   PageContainer,
   Container,
@@ -33,6 +33,25 @@ import Pagination from "@mui/material/Pagination";
 import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 
+/**
+ * Componente Contents - Página de visualização e gerenciamento de conteúdos educacionais.
+ *
+ * Funcionalidades:
+ * - Lista todos os conteúdos publicados por psicólogos
+ * - Busca por título com debounce
+ * - Visualização de conteúdo completo em modal (Markdown)
+ * - Psicólogos podem editar e excluir seus próprios conteúdos
+ * - Navegação para página de criação de conteúdo (psicólogos)
+ * - Paginação configurável
+ * - Exibição de autor e resumo do conteúdo
+ *
+ * Permissões:
+ * - Todos: Visualizar conteúdos
+ * - Psicólogos: Editar/excluir apenas seus próprios conteúdos
+ *
+ * @component
+ * @returns {JSX.Element} Página de conteúdos educacionais
+ */
 function Contents() {
   const navigate = useNavigate();
   const addToast = useToastStore((state) => state.addToast);
@@ -41,13 +60,23 @@ function Contents() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPage(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const { data: contentsData, isLoading } = useContents({
     page,
     size: pageSize,
-    title: searchTerm || undefined, // Backend usa "title" para filtrar
+    title: debouncedSearchTerm || undefined,
   });
   const deleteContentMutation = useDeleteContent();
 
@@ -83,29 +112,10 @@ function Contents() {
     navigate(`/write-content?edit=${contentId}`);
   };
 
-  if (isLoading) {
-    return (
-      <PageContainer>
-        <SubHeader text="Conteúdos" />
-        <Container
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "50vh",
-          }}
-        >
-          <CircularProgress style={{ color: Colors.ORANGE }} />
-        </Container>
-      </PageContainer>
-    );
-  }
-
   return (
     <PageContainer>
       <SubHeader text="Conteúdos" />
       <Container>
-        {/* Barra de busca e botão de criar */}
         <div
           style={{
             display: "flex",
@@ -123,7 +133,6 @@ function Contents() {
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setPage(1); // Reset para primeira página ao buscar
               }}
             />
           </SearchContainer>
@@ -131,30 +140,56 @@ function Contents() {
           {isPsychologist && (
             <Button
               variant="contained"
+              disableElevation
               onClick={() => navigate("/write-content")}
               sx={{
-                backgroundColor: Colors.ORANGE,
+                backgroundColor: Colors.BROWN,
                 color: Colors.WHITE,
                 textTransform: "none",
                 whiteSpace: "nowrap",
                 minWidth: "fit-content",
+                boxShadow: "none",
                 "&:hover": {
-                  backgroundColor: Colors.BROWN,
+                  backgroundColor: Colors.PURPLE,
+                  boxShadow: "none",
                 },
               }}
             >
-              + Escrever Conteúdo
+              Escrever Conteúdo
             </Button>
           )}
         </div>
 
+        {isLoading && contents.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              padding: "0.5rem",
+            }}
+          >
+            <CircularProgress size={20} style={{ color: Colors.ORANGE }} />
+          </div>
+        )}
+
         <Card>
-          {contents.length === 0 ? (
+          {isLoading && contents.length === 0 ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                padding: "3rem",
+              }}
+            >
+              <CircularProgress style={{ color: Colors.ORANGE }} />
+            </div>
+          ) : contents.length === 0 ? (
             <div
               style={{
                 padding: "2rem",
                 textAlign: "center",
-                color: Colors.GRAY,
+                color: Colors.GREY,
               }}
             >
               Nenhum conteúdo disponível no momento.
@@ -168,17 +203,13 @@ function Contents() {
                     <div
                       style={{
                         fontSize: "0.875rem",
-                        color: Colors.GRAY,
+                        color: Colors.LIGHT_ORANGE,
                         marginTop: "0.25rem",
                         marginBottom: "0.5rem",
                       }}
                     >
                       Por: {c.author?.name || "Autor desconhecido"}
                     </div>
-                    <ContentExcerpt>
-                      {(c.body || "").slice(0, 140)}
-                      {(c.body || "").length > 140 ? "..." : ""}
-                    </ContentExcerpt>
                   </div>
                   <div
                     style={{
@@ -266,7 +297,7 @@ function Contents() {
                   label="Linhas por página"
                   onChange={(e) => {
                     setPageSize(e.target.value);
-                    setPage(1); // Reset para primeira página ao mudar tamanho
+                    setPage(1);
                   }}
                 >
                   <MenuItem value={5}>5</MenuItem>

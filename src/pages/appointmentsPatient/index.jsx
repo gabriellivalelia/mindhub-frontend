@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import CloseIcon from "@mui/icons-material/Close";
+import React, { useState, useMemo } from "react";
 import {
   Container,
   ScheduleNewAppointmentButton,
@@ -67,17 +68,21 @@ import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import Search from "@mui/icons-material/Search";
 import ScheduleComponent from "../../components/scheduleComponent";
 import { Padded } from "../home/styles";
+import {
+  appointmentStatusDict,
+  audiencesDict,
+  genderDict,
+} from "../../utils/dictionaries";
 
-const STATUS_MAP = {
-  waiting_for_payment: "Aguardando pagamento",
-  pending_confirmation: "Aguardando confirmação",
-  confirmed: "Confirmada",
-  completed: "Realizada",
-  canceled: "Cancelada",
-};
-
+/**
+ * Retorna a cor correspondente ao status de uma consulta.
+ * Normaliza o status usando o dicionário antes de aplicar a cor.
+ *
+ * @param {string} status - Status da consulta (pode estar em formato de chave ou já traduzido)
+ * @returns {string} Código de cor hexadecimal
+ */
 const getStatusColor = (status) => {
-  const normalizedStatus = STATUS_MAP[status] || status;
+  const normalizedStatus = appointmentStatusDict[status] || status;
   switch (normalizedStatus) {
     case "Aguardando pagamento":
       return Colors.ORANGE;
@@ -94,7 +99,42 @@ const getStatusColor = (status) => {
   }
 };
 
+/**
+ * Componente AppointmentsPatient - Gerenciamento de consultas para pacientes.
+ *
+ * Funcionalidades:
+ * - Lista todas as consultas do paciente com filtros e busca
+ * - Exibe informações detalhadas do psicólogo em modal
+ * - Permite cancelar consultas (respeitando regras de tempo)
+ * - Permite reagendar consultas confirmadas
+ * - Permite efetuar pagamento de consultas pendentes
+ * - Filtros por status, data de início e fim
+ * - Busca por nome do profissional
+ * - Paginação configurável
+ *
+ * @component
+ * @returns {JSX.Element} Página de gerenciamento de consultas do paciente
+ */
 function AppointmentsPatient() {
+  const [openProfessionalInfo, setOpenProfessionalInfo] = useState(false);
+  const [selectedProfessional, setSelectedProfessional] = useState(null);
+
+  /**
+   * Abre o modal com informações detalhadas do psicólogo.
+   *
+   * @param {Object} consultation - Dados da consulta contendo informações do psicólogo
+   */
+  function handleOpenProfessionalInfo(consultation) {
+    setSelectedProfessional(consultation);
+    setOpenProfessionalInfo(true);
+  }
+
+  /**
+   * Fecha o modal de informações do psicólogo.
+   */
+  function handleCloseProfessionalInfo() {
+    setOpenProfessionalInfo(false);
+  }
   const navigate = useNavigate();
   const { data: currentUser } = useCurrentUser();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -118,7 +158,7 @@ function AppointmentsPatient() {
     start_date: startDate,
     end_date: endDate,
     status: statusFilter,
-    patient_id: currentUser?.id, // Filtrar apenas consultas deste paciente
+    patient_id: currentUser?.id,
   });
 
   const cancelAppointmentMutation = useCancelAppointment();
@@ -126,15 +166,29 @@ function AppointmentsPatient() {
   const rescheduleMutation = useRescheduleAppointment();
   const queryClient = useQueryClient();
 
-  // state to show schedule modal for rescheduling
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState(null); // consultation object
   const [selectedRescheduleSlot, setSelectedRescheduleSlot] = useState(null);
 
-  const handleCancel = async (appointmentId) => {
+  /**
+   * Cancela uma consulta e exibe mensagem apropriada.
+   * Se o pagamento já foi realizado, informa sobre o estorno.
+   *
+   * @param {string} appointmentId - ID da consulta a ser cancelada
+   * @param {string} status - Status atual da consulta
+   */
+  const handleCancel = async (appointmentId, status) => {
     try {
       await cancelAppointmentMutation.mutateAsync(appointmentId);
-      addToast("Consulta cancelada com sucesso", "success");
+
+      const paymentWasMade = ["pending_confirmation", "confirmed"].includes(
+        status
+      );
+      const message = paymentWasMade
+        ? "Consulta cancelada com sucesso. O estorno do pagamento será realizado em até 5 dias úteis."
+        : "Consulta cancelada com sucesso";
+
+      addToast(message, "success");
       handleMenuClose();
     } catch (err) {
       console.error("Erro ao cancelar consulta:", err);
@@ -146,10 +200,9 @@ function AppointmentsPatient() {
     }
   };
 
-  // Buscar todos os psicólogos para mapear os dados
   const { data: psychologistsData } = usePsychologists({
     page: 1,
-    size: 1000, // Buscar todos para ter disponível
+    size: 1000,
   });
 
   const handleMenuOpen = (e, consultation) => {
@@ -169,7 +222,6 @@ function AppointmentsPatient() {
     setPage(1);
   };
 
-  // Mapear dados da API para o formato esperado pelo componente
   const mappedAppointments = useMemo(() => {
     if (!appointmentsData?.items) return [];
 
@@ -186,28 +238,31 @@ function AppointmentsPatient() {
 
       const apptDate = parseServerDateToLocal(appointment.date);
       const msUntil = apptDate.getTime() - new Date().getTime();
-      const allowedByTime = msUntil >= 12 * 60 * 60 * 1000; // at least 12 hours ahead
+      const allowedByTime = msUntil >= 12 * 60 * 60 * 1000;
       const allowedByStatus = [
         "waiting_for_payment",
         "pending_confirmation",
       ].includes(appointment.status);
 
-      // do not allow cancel if already canceled or completed
+      const isExpiredAndPending = msUntil < 0 && allowedByStatus;
+      const hasDatePassed = msUntil < 0;
+
       const forbiddenStatus = ["canceled", "completed"].includes(
         appointment.status
       );
 
-      // Permitir reagendar apenas se não cancelada/realizada E com pelo menos 12h
       const canReschedule =
         !forbiddenStatus &&
         allowedByTime &&
         ["confirmed", "pending_confirmation"].includes(appointment.status);
 
-      const canPayment = appointment.status === "waiting_for_payment";
+      const canPayment =
+        appointment.status === "waiting_for_payment" && !hasDatePassed;
       const hasMenuOptions =
         canPayment ||
         canReschedule ||
-        (!forbiddenStatus && (allowedByTime || allowedByStatus));
+        (!forbiddenStatus &&
+          (allowedByTime || allowedByStatus || isExpiredAndPending));
 
       return {
         id: appointment.id,
@@ -215,16 +270,26 @@ function AppointmentsPatient() {
         professional: psychologist.name || "Psicólogo não encontrado",
         professionalPicture:
           psychologist.profile_picture?.src || "/default-avatar.png",
-        status: STATUS_MAP[appointment.status] || appointment.status,
-        rawStatus: appointment.status, // Guardar status original para lógica
+        status: appointmentStatusDict[appointment.status] || appointment.status,
+        rawStatus: appointment.status,
         psychologist_id: appointment.psychologist_id,
         patient_id: appointment.patient_id,
-        price: appointment.pix_payment?.value || 0,
+        price:
+          appointment.pix_payment?.value ||
+          psychologist.value_per_appointment ||
+          0,
         crp: psychologist.crp || "",
         rating: psychologist.rating || 0,
         specialties: psychologist.specialties || [],
         approaches: psychologist.approaches || [],
-        canCancel: !forbiddenStatus && (allowedByTime || allowedByStatus),
+        audiences: psychologist.audiences || [],
+        phone_number: psychologist.phone_number || "",
+        email: psychologist.email || "",
+        city: psychologist.city || "",
+        gender: psychologist.gender || "",
+        canCancel:
+          !forbiddenStatus &&
+          (allowedByTime || allowedByStatus || isExpiredAndPending),
         canReschedule: canReschedule,
         hasMenuOptions: hasMenuOptions,
       };
@@ -358,18 +423,6 @@ function AppointmentsPatient() {
                 >
                   Limpar
                 </Button>
-                {/* <Button
-                  variant="contained"
-                  onClick={applyFilters}
-                  sx={{
-                    backgroundColor: Colors.ORANGE,
-                    color: Colors.WHITE,
-                    textTransform: "none",
-                    "&:hover": { backgroundColor: Colors.LIGHT_ORANGE },
-                  }}
-                >
-                  Aplicar
-                </Button> */}
               </Box>
             </Stack>
           </Box>
@@ -414,6 +467,17 @@ function AppointmentsPatient() {
                   Tentar novamente
                 </Button>
               </Box>
+            ) : filteredAppointments.length === 0 ? (
+              <div
+                style={{
+                  padding: "2rem",
+                  textAlign: "center",
+                  color: Colors.GREY,
+                  width: "100%",
+                }}
+              >
+                Nenhuma consulta encontrada.
+              </div>
             ) : (
               <Stack alignItems="flex-start" spacing={2}>
                 {filteredAppointments?.map((consultation) => (
@@ -422,7 +486,109 @@ function AppointmentsPatient() {
                       <ProfessionalPicture
                         src={consultation.professionalPicture}
                         alt={consultation.professional}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => handleOpenProfessionalInfo(consultation)}
                       />
+                      <Dialog
+                        open={openProfessionalInfo}
+                        onClose={handleCloseProfessionalInfo}
+                      >
+                        <DialogTitle sx={{ color: Colors.ORANGE }}>
+                          Informações do Psicólogo
+                          <IconButton
+                            aria-label="close"
+                            onClick={handleCloseProfessionalInfo}
+                            sx={{ position: "absolute", right: 8, top: 8 }}
+                          >
+                            <CloseIcon />
+                          </IconButton>
+                        </DialogTitle>
+                        <DialogContent>
+                          {selectedProfessional && (
+                            <>
+                              <DialogContentText>
+                                <b>Nome:</b> {selectedProfessional.professional}
+                              </DialogContentText>
+                              {selectedProfessional.gender && (
+                                <DialogContentText>
+                                  <b>Gênero:</b>{" "}
+                                  {genderDict[selectedProfessional.gender] ||
+                                    selectedProfessional.gender}
+                                </DialogContentText>
+                              )}
+                              {selectedProfessional.specialties &&
+                                selectedProfessional.specialties.length > 0 && (
+                                  <DialogContentText>
+                                    <b>Especialidades:</b>{" "}
+                                    {selectedProfessional.specialties
+                                      .map((s) =>
+                                        typeof s === "object" && s !== null
+                                          ? s.name
+                                          : s
+                                      )
+                                      .join(", ")}
+                                  </DialogContentText>
+                                )}
+                              {selectedProfessional.approaches &&
+                                selectedProfessional.approaches.length > 0 && (
+                                  <DialogContentText>
+                                    <b>Abordagens:</b>{" "}
+                                    {selectedProfessional.approaches
+                                      .map((a) =>
+                                        typeof a === "object" && a !== null
+                                          ? a.name
+                                          : a
+                                      )
+                                      .join(", ")}
+                                  </DialogContentText>
+                                )}
+                              {selectedProfessional.audiences &&
+                                selectedProfessional.audiences.length > 0 && (
+                                  <DialogContentText>
+                                    <b>Públicos:</b>{" "}
+                                    {selectedProfessional.audiences
+                                      .map(
+                                        (aud) =>
+                                          audiencesDict[aud] ||
+                                          (typeof aud === "object" &&
+                                          aud !== null
+                                            ? aud.name
+                                            : aud)
+                                      )
+                                      .join(", ")}
+                                  </DialogContentText>
+                                )}
+                              {selectedProfessional.phone_number && (
+                                <DialogContentText>
+                                  <b>Telefone:</b>{" "}
+                                  {selectedProfessional.phone_number}
+                                </DialogContentText>
+                              )}
+                              {selectedProfessional.email && (
+                                <DialogContentText>
+                                  <b>E-mail:</b> {selectedProfessional.email}
+                                </DialogContentText>
+                              )}
+                              {selectedProfessional.city && (
+                                <DialogContentText>
+                                  <b>Cidade:</b>{" "}
+                                  {typeof selectedProfessional.city ===
+                                    "object" &&
+                                  selectedProfessional.city !== null
+                                    ? `${selectedProfessional.city.name}${selectedProfessional.city.state ? ", " + selectedProfessional.city.state.name : ""}`
+                                    : selectedProfessional.city}
+                                </DialogContentText>
+                              )}
+                              {selectedProfessional.price && (
+                                <DialogContentText>
+                                  <b>Valor da consulta:</b> R${" "}
+                                  {selectedProfessional.price}
+                                </DialogContentText>
+                              )}
+                            </>
+                          )}
+                        </DialogContent>
+                      </Dialog>
                     </ProfessionalPictureContainer>
                     <ConsultationInfo>
                       <ProfessionalName>
@@ -570,8 +736,6 @@ function AppointmentsPatient() {
             <MenuItem
               onClick={() => {
                 handleMenuClose();
-                // open reschedule modal using ScheduleComponent
-                // invalidate psychologist data to fetch fresh availabilities
                 const pid = selectedConsultation?.psychologist_id;
                 if (pid)
                   queryClient.invalidateQueries({
@@ -594,7 +758,10 @@ function AppointmentsPatient() {
           {selectedConsultation?.canCancel && (
             <MenuItem
               onClick={() => {
-                handleCancel(selectedConsultation.id);
+                handleCancel(
+                  selectedConsultation.id,
+                  selectedConsultation.rawStatus
+                );
               }}
             >
               <ListItemIcon>
@@ -604,7 +771,6 @@ function AppointmentsPatient() {
             </MenuItem>
           )}
         </Menu>
-        {/* Reschedule dialog using ScheduleComponent */}
         <Dialog
           open={rescheduleOpen}
           onClose={() => setRescheduleOpen(false)}
@@ -641,7 +807,6 @@ function AppointmentsPatient() {
             </Button>
             <Button
               onClick={async () => {
-                // validations
                 if (!rescheduleTarget) return;
                 const statusOk = ["confirmed", "pending_confirmation"].includes(
                   rescheduleTarget.rawStatus
@@ -669,7 +834,6 @@ function AppointmentsPatient() {
                 }
 
                 try {
-                  // call reschedule mutation
                   await rescheduleMutation.mutateAsync({
                     appointmentId: rescheduleTarget.id,
                     newDate: selectedRescheduleSlot.iso,
@@ -708,7 +872,6 @@ function AppointmentsPatient() {
 
 export default AppointmentsPatient;
 
-// Helper component to fetch psychologist availabilities for rescheduling
 function ReschedulePsychologistSchedule({ psychologistId, onSlotSelect }) {
   const { data: psychologist } = usePsychologist(psychologistId);
   const slots =

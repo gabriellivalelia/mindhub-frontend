@@ -37,7 +37,6 @@ export function useRegisterPsychologist() {
     mutationFn: async (psychologistData) => {
       const formData = new FormData();
 
-      // Campos obrigatórios
       formData.append("name", psychologistData.name);
       formData.append("email", psychologistData.email);
       formData.append("password", psychologistData.password);
@@ -100,7 +99,7 @@ export function useStates() {
       const response = await api.get("/states", { params: { size: 100 } });
       return response.data;
     },
-    staleTime: 30 * 60 * 1000, // 30 minutos (dados geográficos raramente mudam)
+    staleTime: 30 * 60 * 1000,
   });
 }
 
@@ -116,6 +115,6 @@ export function useCitiesByState(stateId) {
       return response.data;
     },
     enabled: !!stateId,
-    staleTime: 30 * 60 * 1000, // 30 minutos
+    staleTime: 30 * 60 * 1000,
   });
 }

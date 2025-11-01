@@ -20,6 +20,30 @@ import { useCurrentUser } from "../../services/useCurrentUser";
 import authService from "../../services/authService";
 import { useToastStore } from "../../stores/useToastStore";
 
+/**
+ * Componente AccountMenu - Menu dropdown com avatar do usuário.
+ *
+ * Exibe opções de navegação e ações específicas dependendo do tipo de usuário:
+ *
+ * Opções comuns:
+ * - Editar perfil (com avatar)
+ * - Home
+ * - Consultas
+ * - Conteúdos
+ * - Sair
+ *
+ * Opções exclusivas para psicólogos:
+ * - Gerenciar disponibilidades
+ * - Escrever conteúdo
+ *
+ * @component
+ * @param {Object} props - Props do componente
+ * @param {string} props.avatarSrc - URL da imagem do avatar do usuário
+ * @returns {JSX.Element} Avatar clicável com menu dropdown
+ *
+ * @example
+ * <AccountMenu avatarSrc={user?.profile_picture?.src} />
+ */
 export default function AccountMenu({ avatarSrc }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);

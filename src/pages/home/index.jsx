@@ -49,15 +49,18 @@ import {
   formatTime,
   parseServerDateToLocal,
 } from "../../utils/formatDate";
+import { appointmentStatusDict } from "../../utils/dictionaries";
 
-const STATUS_MAP = {
-  waiting_for_payment: "Aguardando pagamento",
-  pending_confirmation: "Aguardando confirmação",
-  confirmed: "Confirmada",
-  completed: "Realizada",
-  canceled: "Cancelada",
-};
-
+/**
+ * Retorna a cor correspondente ao status de uma consulta.
+ *
+ * @param {string} status - Status da consulta em português
+ * @returns {string} Código de cor hexadecimal
+ *
+ * @example
+ * getStatusColor("Confirmada") // Returns: Colors.GREEN
+ * getStatusColor("Cancelada") // Returns: Colors.RED
+ */
 const getStatusColor = (status) => {
   switch (status) {
     case "Aguardando pagamento":
@@ -75,6 +78,20 @@ const getStatusColor = (status) => {
   }
 };
 
+/**
+ * Componente Home - Dashboard principal da aplicação.
+ * Exibe as próximas consultas do usuário (paciente ou psicólogo) com diferentes
+ * visualizações e ações dependendo do tipo de usuário e status das consultas.
+ *
+ * Funcionalidades:
+ * - Lista próximas consultas organizadas por data
+ * - Ações contextuais por consulta (cancelar, confirmar pagamento, marcar como realizada)
+ * - Navegação para agendamento de novas consultas
+ * - Diferencia visualização entre pacientes e psicólogos
+ *
+ * @component
+ * @returns {JSX.Element} Dashboard com lista de consultas do usuário
+ */
 function Home() {
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
@@ -155,7 +172,7 @@ function Home() {
         patient: patient.name || "Paciente não encontrado",
         patientPicture: patient.profile_picture?.src || "/default-avatar.png",
         patientId: appointment.patient_id,
-        status: STATUS_MAP[appointment.status] || appointment.status,
+        status: appointmentStatusDict[appointment.status] || appointment.status,
         rawStatus: appointment.status,
         price: appointment.pix_payment?.value || 0,
         canCancel: !forbiddenStatus && (allowedByTime || allowedByStatus),
@@ -260,11 +277,20 @@ function Home() {
     });
   };
 
-  const handleCancel = async (appointmentId) => {
+  const handleCancel = async (appointmentId, status) => {
     handleMenuClose();
     try {
       await cancelAppointmentMutation.mutateAsync(appointmentId);
-      addToast("Consulta cancelada com sucesso", "success");
+
+      // Verifica se o pagamento foi feito (status pending_confirmation ou confirmed)
+      const paymentWasMade = ["pending_confirmation", "confirmed"].includes(
+        status
+      );
+      const message = paymentWasMade
+        ? "Consulta cancelada com sucesso. O estorno do pagamento será realizado em até 5 dias úteis."
+        : "Consulta cancelada com sucesso";
+
+      addToast(message, "success");
       // Recarregar a página para atualizar próxima/última consulta
       window.location.reload();
     } catch (err) {
@@ -403,7 +429,9 @@ function Home() {
                               boxShadow: "none",
                               minWidth: 185,
                             }}
-                            onClick={() => c.canCancel && handleCancel(c.id)}
+                            onClick={() =>
+                              c.canCancel && handleCancel(c.id, c.rawStatus)
+                            }
                           >
                             Cancelar consulta
                           </Button>
@@ -478,7 +506,9 @@ function Home() {
                         </MenuItem>
                       )}
                       {next.canCancel ? (
-                        <MenuItem onClick={() => handleCancel(next.id)}>
+                        <MenuItem
+                          onClick={() => handleCancel(next.id, next.rawStatus)}
+                        >
                           <ListItemIcon>
                             <CancelIcon
                               sx={{ color: Colors.GREY }}

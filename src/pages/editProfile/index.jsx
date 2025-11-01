@@ -103,6 +103,35 @@ const customStyles = {
   }),
 };
 
+/**
+ * Componente EditProfile - Página de edição de perfil do usuário.
+ *
+ * Permite editar perfil de pacientes e psicólogos com campos específicos:
+ *
+ * Campos comuns:
+ * - Avatar (foto de perfil)
+ * - Nome, Email, CPF, Telefone, Data de nascimento
+ * - Gênero, Estado, Cidade
+ *
+ * Campos exclusivos para psicólogos:
+ * - CRP (Conselho Regional de Psicologia)
+ * - Descrição profissional
+ * - Valor por consulta
+ * - Especialidades (seleção múltipla)
+ * - Abordagens (seleção múltipla)
+ * - Públicos-alvo (seleção múltipla)
+ *
+ * Funcionalidades:
+ * - Carregamento de dados atuais do perfil
+ * - Preview de avatar antes do upload
+ * - Seleção dinâmica de cidades baseada no estado
+ * - Validação de campos
+ * - Atualização parcial (apenas campos modificados)
+ * - Feedback de sucesso/erro
+ *
+ * @component
+ * @returns {JSX.Element} Página de edição de perfil
+ */
 function EditProfile() {
   const navigate = useNavigate();
   const addToast = useToastStore((state) => state.addToast);

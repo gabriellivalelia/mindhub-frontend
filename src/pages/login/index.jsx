@@ -39,6 +39,21 @@ import { authService } from "../../services/authService";
 import { HTTP_STATUS } from "../../utils/constants";
 import { useToastStore } from "../../stores/useToastStore";
 
+/**
+ * Componente Login - Página de autenticação de usuários.
+ *
+ * Funcionalidades:
+ * - Formulário de login com email e senha
+ * - Validação de campos usando Zod
+ * - Exibição/ocultação de senha
+ * - Feedback de erros de autenticação
+ * - Redirecionamento para home após login bem-sucedido
+ * - Links para registro e recuperação de senha
+ * - Opção de login com Google (preparado na UI)
+ *
+ * @component
+ * @returns {JSX.Element} Página de login
+ */
 function Login() {
   const navigate = useNavigate();
   const addToast = useToastStore((state) => state.addToast);

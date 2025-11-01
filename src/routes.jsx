@@ -2,7 +2,6 @@ import {
   createBrowserRouter,
   createRoutesFromElements,
   Outlet,
-  Navigate,
   Route,
   RouterProvider,
 } from "react-router-dom";
@@ -15,7 +14,6 @@ import {
   Home,
   Login,
   Unauthorized,
-  NotFound,
   PreLogin,
   Register,
   WriteContent,
@@ -70,12 +68,10 @@ function HomeRoute() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { isLoading, isError } = useCurrentUser();
 
-  // Se está autenticado mas carregando validação, mostra PreLogin ou loading
   if (isAuthenticated && isLoading) {
-    return <PreLogin />; // ou um componente de loading
+    return <PreLogin />;
   }
 
-  // Se erro na validação (token expirado), mostra PreLogin
   if (isAuthenticated && isError) {
     return <PreLogin />;
   }

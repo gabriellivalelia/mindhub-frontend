@@ -48,6 +48,7 @@ import { usePsychologists } from "../../services/usePsychologists";
 import { useSpecialties } from "../../services/useSpecialties";
 import { useApproaches } from "../../services/useApproaches";
 import { useToastStore } from "../../stores/useToastStore";
+import { genderDict, audiencesDict } from "../../utils/dictionaries";
 
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
@@ -64,7 +65,6 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Select from "@mui/material/Select";
-import TextField from "@mui/material/TextField";
 import Pagination from "@mui/material/Pagination";
 import { SubHeader } from "../../components";
 import Colors from "../../globalConfigs/globalStyles/colors";
@@ -81,6 +81,21 @@ import { Menu } from "@mui/material";
 
 import { useSolicitScheduleAppointment } from "../../services/useAppointments";
 
+/**
+ * Componente ScheduleNewAppointment - Agendamento de novas consultas.
+ *
+ * Funcionalidades:
+ * - Lista psicólogos disponíveis com filtros avançados
+ * - Filtros por especialidades, abordagens, gênero, público-alvo e preço
+ * - Visualização de perfil completo do psicólogo
+ * - Seleção de horários disponíveis na agenda
+ * - Solicitação de agendamento de consulta
+ * - Paginação de resultados
+ * - Redirecionamento para pagamento após agendamento
+ *
+ * @component
+ * @returns {JSX.Element} Página de busca e agendamento de consultas
+ */
 function ScheduleNewAppointment() {
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [pageSize, setPageSize] = React.useState(5);
@@ -95,8 +110,6 @@ function ScheduleNewAppointment() {
   const [genderFilter, setGenderFilter] = React.useState("");
   const [selectedApproaches, setSelectedApproaches] = React.useState([]);
   const [audienceFilter, setAudienceFilter] = React.useState("");
-  const [dateFilter, setDateFilter] = React.useState("");
-  const [timeFilter, setTimeFilter] = React.useState("");
   const [maxPrice, setMaxPrice] = React.useState("");
 
   // Construir query params para a API
@@ -178,21 +191,6 @@ function ScheduleNewAppointment() {
     () => approaches.map((a) => ({ value: a.id, label: a.name })),
     [approaches]
   );
-
-  const genderDict = {
-    female: "Feminino",
-    male: "Masculino",
-    non_binary: "Não-binário",
-    prefer_not_to_say: "Não informado",
-  };
-
-  const audiencesDict = {
-    children: "Crianças",
-    adolescents: "Adolescentes",
-    adults: "Adultos",
-    elderly: "Idosos",
-    couples: "Casais",
-  };
 
   const selectStyles = React.useMemo(
     () => ({
@@ -345,8 +343,6 @@ function ScheduleNewAppointment() {
     setGenderFilter("");
     setSelectedApproaches([]);
     setAudienceFilter("");
-    setDateFilter("");
-    setTimeFilter("");
     setMaxPrice("");
     setPage(1);
   };
@@ -358,7 +354,26 @@ function ScheduleNewAppointment() {
       : null;
 
   const displayedPsychologists = React.useMemo(() => {
-    const list = psychologists || [];
+    const now = new Date();
+
+    // Filtrar psicólogos que tenham pelo menos uma availability futura e disponível
+    const list = (psychologists || []).filter((psychologist) => {
+      if (
+        !psychologist.availabilities ||
+        psychologist.availabilities.length === 0
+      ) {
+        return false;
+      }
+
+      // Verificar se tem alguma availability futura e disponível
+      const hasFutureAvailability = psychologist.availabilities.some((av) => {
+        const avDate = new Date(av.date);
+        return av.available && avDate > now;
+      });
+
+      return hasFutureAvailability;
+    });
+
     if (!preselectId) return list;
     const idx = list.findIndex((p) => Number(p.id) === preselectId);
     if (idx <= 0) return list;
@@ -570,38 +585,6 @@ function ScheduleNewAppointment() {
                     <MenuItem value="couples">Casais</MenuItem>
                   </Select>
                 </FormControl>
-              </div>
-
-              <div>
-                <LabelSmall>Data</LabelSmall>
-                <TextField
-                  type="date"
-                  size="small"
-                  fullWidth
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  sx={{
-                    "& .MuiInputBase-input": { fontSize: FontSizes.SMALL },
-                    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-                      { borderColor: Colors.ORANGE },
-                  }}
-                />
-              </div>
-
-              <div>
-                <LabelSmall>Hora</LabelSmall>
-                <TextField
-                  type="time"
-                  size="small"
-                  fullWidth
-                  value={timeFilter}
-                  onChange={(e) => setTimeFilter(e.target.value)}
-                  sx={{
-                    "& .MuiInputBase-input": { fontSize: FontSizes.SMALL },
-                    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-                      { borderColor: Colors.ORANGE },
-                  }}
-                />
               </div>
 
               <Box

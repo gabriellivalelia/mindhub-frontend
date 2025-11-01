@@ -112,6 +112,27 @@ const customStyles = {
   }),
 };
 
+/**
+ * Componente Register - Página de registro de novos usuários.
+ *
+ * Permite o cadastro de dois tipos de usuários:
+ * - Pacientes: Dados pessoais básicos
+ * - Psicólogos: Dados pessoais + informações profissionais (CRP, especialidades, abordagens, etc)
+ *
+ * Funcionalidades:
+ * - Toggle entre registro de paciente e psicólogo
+ * - Formulários dinâmicos com validação Zod
+ * - Campos específicos por tipo de usuário
+ * - Seleção de estados e cidades (carregamento dinâmico)
+ * - Seleção múltipla de especialidades e abordagens (psicólogos)
+ * - Máscara para CPF, telefone e data de nascimento
+ * - Exibição/ocultação de senha
+ * - Auto-login após registro bem-sucedido
+ * - Tratamento de erros de validação e API
+ *
+ * @component
+ * @returns {JSX.Element} Página de registro
+ */
 function Register() {
   const navigate = useNavigate();
   const addToast = useToastStore((state) => state.addToast);
@@ -201,7 +222,6 @@ function Register() {
   });
 
   useEffect(() => {
-    // Reset com valores padrão limpos
     reset({
       name: "",
       birthDate: "",
@@ -227,7 +247,6 @@ function Register() {
     setSelectedState(null);
   }, [userType, reset]);
 
-  // Resetar cidade quando estado muda
   useEffect(() => {
     setValue("city", null);
   }, [selectedState, setValue]);

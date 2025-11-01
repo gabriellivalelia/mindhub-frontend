@@ -20,12 +20,38 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useToastStore } from "../../stores/useToastStore";
 
-// Função para normalizar datetime removendo milissegundos do formato ISO
+/**
+ * Normaliza uma string de data ISO removendo milissegundos.
+ *
+ * @param {string} isoString - String de data no formato ISO 8601
+ * @returns {string} String de data normalizada sem milissegundos
+ */
 const normalizeDatetime = (isoString) => {
-  // Remove .000 ou qualquer milissegundo da string ISO
   return isoString.replace(/\.\d{3}Z$/, "Z");
 };
 
+/**
+ * Componente AddAvailabilitiesPage - Página de gerenciamento de disponibilidades do psicólogo.
+ *
+ * Permite ao psicólogo:
+ * - Visualizar disponibilidades atuais (slots disponíveis e agendados)
+ * - Adicionar novos horários disponíveis
+ * - Remover horários disponíveis (que não estão agendados)
+ * - Salvar alterações em lote
+ *
+ * Funcionalidades:
+ * - Grade de agenda com navegação por semanas
+ * - Diferenciação visual de slots (disponíveis vs agendados)
+ * - Validação: Não permite remover slots com consultas agendadas
+ * - Feedback de sucesso/erro nas operações
+ * - Navegação de volta para home
+ *
+ * Acesso:
+ * - Restrito a psicólogos
+ *
+ * @component
+ * @returns {JSX.Element} Página de gerenciamento de disponibilidades
+ */
 const AddAvailabilitiesPage = () => {
   const [selectedSlots, setSelectedSlots] = React.useState([]);
   const [slotsToRemove, setSlotsToRemove] = React.useState([]);
@@ -38,13 +64,11 @@ const AddAvailabilitiesPage = () => {
   const { data: psychologistData, isLoading: isLoadingPsychologist } =
     useCurrentPsychologist();
 
-  // Separar availabilities em disponíveis e agendadas
   const availableSlots = React.useMemo(() => {
     if (!psychologistData?.availabilities) return [];
     const slots = psychologistData.availabilities
       .filter((av) => av.available)
       .map((av) => {
-        // Normalizar para ISO string para comparação consistente
         const date = new Date(av.date);
         return date.toISOString();
       });
@@ -171,7 +195,7 @@ const AddAvailabilitiesPage = () => {
               width: { xs: "45%", md: "200px" },
               height: "45px",
               textTransform: "none",
-              "&:hover": { boxShadow: "none", backgroundColor: Colors.GREY },
+              "&:hover": { boxShadow: "none", backgroundColor: Colors.PURPLE },
             }}
             onClick={handleSave}
             disabled={

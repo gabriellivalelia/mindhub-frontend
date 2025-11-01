@@ -104,7 +104,7 @@ export const SlotsRow = styled.div`
   justify-content: space-between;
   width: 100%;
   overflow-y: auto;
-  max-height: 60vh; /* local control — won't affect shared schedule */
+  max-height: 60vh;
   min-height: 160px;
   flex: 1 1 auto;
 
@@ -179,13 +179,13 @@ export const TimeSlot = styled.div`
   ${(props) =>
     props.$markedForRemoval &&
     css`
-      background-color: #ffcccc;
-      color: #cc0000;
-      border: 1px solid #cc0000;
+      background-color: ${Colors.REMOVAL_BG};
+      color: ${Colors.REMOVAL_TEXT};
+      border: 1px solid ${Colors.REMOVAL_BORDER};
       cursor: pointer;
 
       &:hover {
-        background-color: #ff9999;
+        background-color: ${Colors.REMOVAL_BG_HOVER};
       }
     `}
 

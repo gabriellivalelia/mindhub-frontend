@@ -24,7 +24,7 @@ export const Container = styled.div`
 `;
 
 export const Card = styled.div`
-  background: ${Colors.LIGHT_GREY};
+  background: transparent;
   border-radius: 8px;
   padding: 1rem;
   width: 100%;

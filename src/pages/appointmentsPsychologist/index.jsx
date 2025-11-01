@@ -1,4 +1,9 @@
-import React from "react";
+import CloseIcon from "@mui/icons-material/Close";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import React, { useState } from "react";
 import {
   PageContainer,
   Container,
@@ -16,7 +21,6 @@ import {
   ConsultationDateTime,
   ConsultationStatus,
   StatusAndActionsContainer,
-  MoreInfoButton,
   FullWidth,
   RowBetween,
   FilterTitle,
@@ -55,6 +59,8 @@ import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { formatDateTime, parseServerDateToLocal } from "../../utils/formatDate";
+import { appointmentStatusDict, genderDict } from "../../utils/dictionaries";
+
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Select from "@mui/material/Select";
@@ -62,15 +68,42 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Pagination from "@mui/material/Pagination";
 
-const STATUS_MAP = {
-  waiting_for_payment: "Aguardando pagamento",
-  pending_confirmation: "Aguardando confirmação",
-  confirmed: "Confirmada",
-  completed: "Realizada",
-  canceled: "Cancelada",
-};
-
+/**
+ * Componente PsychologistAppointments - Gerenciamento de consultas para psicólogos.
+ *
+ * Funcionalidades:
+ * - Lista todas as consultas do psicólogo com filtros e busca
+ * - Exibe informações detalhadas do paciente em modal
+ * - Permite confirmar pagamento de consultas pendentes
+ * - Permite marcar consultas como realizadas
+ * - Permite cancelar consultas (respeitando regras de tempo)
+ * - Filtros por status, data de início e fim
+ * - Busca por nome do paciente
+ * - Paginação configurável
+ *
+ * @component
+ * @returns {JSX.Element} Página de gerenciamento de consultas do psicólogo
+ */
 function PsychologistAppointments() {
+  const [openPatientInfo, setOpenPatientInfo] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+
+  /**
+   * Abre o modal com informações detalhadas do paciente.
+   *
+   * @param {Object} consultation - Dados da consulta contendo informações do paciente
+   */
+  function handleOpenPatientInfo(consultation) {
+    setSelectedPatient(consultation);
+    setOpenPatientInfo(true);
+  }
+
+  /**
+   * Fecha o modal de informações do paciente.
+   */
+  function handleClosePatientInfo() {
+    setOpenPatientInfo(false);
+  }
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [pageSize, setPageSize] = React.useState(5);
   const [page, setPage] = React.useState(1);
@@ -88,10 +121,18 @@ function PsychologistAppointments() {
   const completeAppointmentMutation = useCompleteAppointment();
   const { data: currentUser } = useCurrentUser();
 
-  const handleCancel = async (appointmentId) => {
+  const handleCancel = async (appointmentId, status) => {
     try {
       await cancelAppointmentMutation.mutateAsync(appointmentId);
-      addToast("Consulta cancelada com sucesso", "success");
+
+      const paymentWasMade = ["pending_confirmation", "confirmed"].includes(
+        status
+      );
+      const message = paymentWasMade
+        ? "Consulta cancelada com sucesso. O estorno do pagamento será realizado em até 5 dias úteis."
+        : "Consulta cancelada com sucesso";
+
+      addToast(message, "success");
       handleMenuClose();
     } catch (err) {
       console.error("Erro ao cancelar consulta:", err);
@@ -128,13 +169,12 @@ function PsychologistAppointments() {
     start_date: startDate,
     end_date: endDate,
     status: statusFilter,
-    psychologist_id: currentUser?.id, // Filtrar apenas consultas deste psicólogo
+    psychologist_id: currentUser?.id,
   });
 
-  // Buscar todos os pacientes para ter disponível nos mapeamentos
   const { data: patientsData } = usePatients({
     page: 1,
-    size: 1000, // Buscar todos para ter disponível
+    size: 1000,
   });
 
   const handleMenuOpen = (e, consultation) => {
@@ -147,7 +187,7 @@ function PsychologistAppointments() {
   };
 
   const getStatusColor = (status) => {
-    const normalizedStatus = STATUS_MAP[status] || status;
+    const normalizedStatus = appointmentStatusDict[status] || status;
     switch (normalizedStatus) {
       case "Aguardando pagamento":
         return Colors.ORANGE;
@@ -178,7 +218,7 @@ function PsychologistAppointments() {
       addToast("Pagamento confirmado com sucesso!", "success");
       handleMenuClose();
     } catch (error) {
-      console.error("Error confirming payment:", error);
+      console.error("Erro ao confirmar pagamento:", error);
       addToast(
         error.response?.data?.message ||
           "Erro ao confirmar pagamento. Tente novamente.",
@@ -187,11 +227,9 @@ function PsychologistAppointments() {
     }
   };
 
-  // Mapear dados da API para o formato esperado pelo componente
   const mappedAppointments = React.useMemo(() => {
     if (!appointmentsData?.items) return [];
 
-    // Criar mapa de pacientes para acesso rápido por ID
     const patientsMap = (patientsData?.items || []).reduce((acc, patient) => {
       acc[patient.id] = patient;
       return acc;
@@ -202,23 +240,27 @@ function PsychologistAppointments() {
 
       const apptDate = parseServerDateToLocal(appointment.date);
       const msUntil = apptDate.getTime() - new Date().getTime();
-      const allowedByTime = msUntil >= 12 * 60 * 60 * 1000; // at least 12 hours ahead
+      const allowedByTime = msUntil >= 12 * 60 * 60 * 1000;
       const allowedByStatus = [
         "waiting_for_payment",
         "pending_confirmation",
       ].includes(appointment.status);
 
-      // do not allow cancel if already canceled or completed
+      const isExpiredAndPending = msUntil < 0 && allowedByStatus;
+      const hasDatePassed = msUntil < 0;
+
       const forbiddenStatus = ["canceled", "completed"].includes(
         appointment.status
       );
 
-      const canCancel = !forbiddenStatus && (allowedByTime || allowedByStatus);
-      const canConfirmPayment = appointment.status === "pending_confirmation";
+      const canCancel =
+        !forbiddenStatus &&
+        (allowedByTime || allowedByStatus || isExpiredAndPending);
+      const canConfirmPayment =
+        appointment.status === "pending_confirmation" && !hasDatePassed;
       const canComplete =
         appointment.status === "confirmed" && apptDate < new Date();
 
-      // Verifica se há alguma opção disponível no menu
       const hasMenuOptions = canConfirmPayment || canComplete || canCancel;
 
       return {
@@ -226,17 +268,20 @@ function PsychologistAppointments() {
         datetime: appointment.date,
         patient: patient.name || "Paciente não encontrado",
         patientPicture: patient.profile_picture?.src || "/default-avatar.png",
-        status: STATUS_MAP[appointment.status] || appointment.status,
+        status: appointmentStatusDict[appointment.status] || appointment.status,
         rawStatus: appointment.status,
         psychologist_id: appointment.psychologist_id,
         patient_id: appointment.patient_id,
         price: appointment.pix_payment?.value || 0,
-        // Informações adicionais do paciente
         cpf: patient.cpf,
         phone_number: patient.phone_number,
         birth_date: patient.birth_date,
         gender: patient.gender,
+        email: patient.email,
+        city: patient.city,
         canCancel,
+        canConfirmPayment,
+        canComplete,
         hasMenuOptions,
       };
     });
@@ -369,18 +414,6 @@ function PsychologistAppointments() {
                 >
                   Limpar
                 </Button>
-                {/* <Button
-                  variant="contained"
-                  onClick={applyFilters}
-                  sx={{
-                    backgroundColor: Colors.ORANGE,
-                    color: Colors.WHITE,
-                    textTransform: "none",
-                    "&:hover": { backgroundColor: Colors.LIGHT_ORANGE },
-                  }}
-                >
-                  Aplicar
-                </Button> */}
               </Box>
             </Stack>
           </Box>
@@ -425,6 +458,17 @@ function PsychologistAppointments() {
                   Tentar novamente
                 </Button>
               </Box>
+            ) : filteredAppointments.length === 0 ? (
+              <div
+                style={{
+                  padding: "2rem",
+                  textAlign: "center",
+                  color: Colors.GREY,
+                  width: "100%",
+                }}
+              >
+                Nenhuma consulta encontrada.
+              </div>
             ) : (
               <Stack alignItems="flex-start" spacing={2}>
                 {filteredAppointments?.map((consultation) => (
@@ -433,7 +477,72 @@ function PsychologistAppointments() {
                       <PatientPicture
                         src={consultation.patientPicture}
                         alt={consultation.patient}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => handleOpenPatientInfo(consultation)}
                       />
+                      <Dialog
+                        open={openPatientInfo}
+                        onClose={handleClosePatientInfo}
+                      >
+                        <DialogTitle sx={{ color: Colors.ORANGE }}>
+                          Informações do Paciente
+                          <IconButton
+                            aria-label="close"
+                            onClick={handleClosePatientInfo}
+                            sx={{ position: "absolute", right: 8, top: 8 }}
+                          >
+                            <CloseIcon />
+                          </IconButton>
+                        </DialogTitle>
+                        <DialogContent>
+                          {selectedPatient && (
+                            <>
+                              <DialogContentText>
+                                <b>Nome:</b> {selectedPatient.patient}
+                              </DialogContentText>
+                              {selectedPatient.phone_number && (
+                                <DialogContentText>
+                                  <b>Telefone:</b>{" "}
+                                  {selectedPatient.phone_number}
+                                </DialogContentText>
+                              )}
+                              {selectedPatient.email && (
+                                <DialogContentText>
+                                  <b>E-mail:</b> {selectedPatient.email}
+                                </DialogContentText>
+                              )}
+                              {selectedPatient.birth_date && (
+                                <DialogContentText>
+                                  <b>Data de nascimento:</b>{" "}
+                                  {(() => {
+                                    const d = parseServerDateToLocal(
+                                      selectedPatient.birth_date
+                                    );
+                                    if (!d) return "";
+                                    return d.toLocaleDateString("pt-BR");
+                                  })()}
+                                </DialogContentText>
+                              )}
+                              {selectedPatient.gender && (
+                                <DialogContentText>
+                                  <b>Gênero:</b>{" "}
+                                  {genderDict[selectedPatient.gender] ||
+                                    selectedPatient.gender}
+                                </DialogContentText>
+                              )}
+                              {selectedPatient.city && (
+                                <DialogContentText>
+                                  <b>Cidade:</b>{" "}
+                                  {typeof selectedPatient.city === "object" &&
+                                  selectedPatient.city !== null
+                                    ? `${selectedPatient.city.name}${selectedPatient.city.state ? ", " + selectedPatient.city.state.name : ""}`
+                                    : selectedPatient.city}
+                                </DialogContentText>
+                              )}
+                            </>
+                          )}
+                        </DialogContent>
+                      </Dialog>
                     </PatientPictureContainer>
                     <ConsultationInfo>
                       <PatientName>{consultation.patient}</PatientName>
@@ -546,7 +655,7 @@ function PsychologistAppointments() {
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
           transformOrigin={{ vertical: "top", horizontal: "right" }}
         >
-          {selectedConsultation?.rawStatus === "pending_confirmation" && (
+          {selectedConsultation?.canConfirmPayment && (
             <MenuItem
               onClick={() => handleConfirmPayment(selectedConsultation.id)}
               disabled={confirmPaymentMutation.isPending}
@@ -562,28 +671,26 @@ function PsychologistAppointments() {
                 : "Confirmar pagamento"}
             </MenuItem>
           )}
-          {selectedConsultation?.rawStatus === "confirmed" &&
-            parseServerDateToLocal(selectedConsultation?.datetime) <
-              new Date() && (
-              <MenuItem
-                onClick={() => handleComplete(selectedConsultation.id)}
-                disabled={completeAppointmentMutation.isPending}
-              >
-                <ListItemIcon>
-                  <TaskAlt
-                    sx={{ color: Colors.LIGHT_ORANGE }}
-                    fontSize="small"
-                  />
-                </ListItemIcon>
-                {completeAppointmentMutation.isPending
-                  ? "Marcando..."
-                  : "Marcar como concluída"}
-              </MenuItem>
-            )}
+          {selectedConsultation?.canComplete && (
+            <MenuItem
+              onClick={() => handleComplete(selectedConsultation.id)}
+              disabled={completeAppointmentMutation.isPending}
+            >
+              <ListItemIcon>
+                <TaskAlt sx={{ color: Colors.LIGHT_ORANGE }} fontSize="small" />
+              </ListItemIcon>
+              {completeAppointmentMutation.isPending
+                ? "Marcando..."
+                : "Marcar como concluída"}
+            </MenuItem>
+          )}
           {selectedConsultation?.canCancel && (
             <MenuItem
               onClick={() => {
-                handleCancel(selectedConsultation.id);
+                handleCancel(
+                  selectedConsultation.id,
+                  selectedConsultation.rawStatus
+                );
               }}
             >
               <ListItemIcon>

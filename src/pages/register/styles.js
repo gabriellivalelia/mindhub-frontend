@@ -8,7 +8,6 @@ export const PageContainer = styled.div`
   flex-direction: column;
   font-family: Arial, sans-serif;
   min-height: 100%;
-  /* local safeguard against horizontal overflow */
   overflow-x: hidden;
 `;
 
@@ -41,7 +40,6 @@ export const ToggleContainer = styled.div`
   border-radius: 8px;
   min-width: 90%;
   overflow: hidden;
-  /* prevent horizontal scroll due to children width */
   overflow-x: hidden;
 `;
 

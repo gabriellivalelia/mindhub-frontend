@@ -14,21 +14,32 @@ import {
   ScrollBar,
 } from "./styles";
 
+/**
+ * Agrupa os slots de horários disponíveis por dia.
+ * Filtra apenas datas futuras e ordena os horários.
+ *
+ * @param {Array<Object>} slots - Array de slots com data e disponibilidade
+ * @param {string} slots[].date - Data do slot em formato ISO
+ * @param {boolean} slots[].available - Se o slot está disponível
+ * @returns {Map<string, Array<Object>>} Map com data como chave e array de horários como valor
+ */
 const groupSlotsByDay = (slots) => {
   const grouped = new Map();
   if (!slots) return grouped;
 
+  const now = new Date();
+
   slots.forEach((slot) => {
     if (!slot || !slot.date) {
-      // skip invalid slot entries
-      console.warn("ScheduleComponent: skipping slot with missing date", slot);
       return;
     }
 
     const date = new Date(slot.date);
     if (isNaN(date.getTime())) {
-      // invalid date string — skip to avoid RangeError
-      console.warn("ScheduleComponent: skipping slot with invalid date", slot);
+      return;
+    }
+
+    if (date <= now) {
       return;
     }
 
@@ -54,6 +65,30 @@ const groupSlotsByDay = (slots) => {
   return grouped;
 };
 
+/**
+ * Componente ScheduleComponent - Visualizador de agenda com slots de horários.
+ *
+ * Exibe uma grade de 5 dias com horários disponíveis e ocupados.
+ * Permite navegação por semanas e seleção de horários disponíveis.
+ * Filtra automaticamente horários passados.
+ *
+ * @component
+ * @param {Object} props - Props do componente
+ * @param {Array<Object>} props.allSlots - Array de slots de horários
+ * @param {string} props.allSlots[].date - Data do slot em formato ISO
+ * @param {boolean} props.allSlots[].available - Se o slot está disponível
+ * @param {Function} props.onSlotSelect - Callback chamado quando um slot é selecionado/desmarcado
+ * @returns {JSX.Element} Grade de agendamento com navegação
+ *
+ * @example
+ * <ScheduleComponent
+ *   allSlots={[
+ *     { date: "2025-11-01T14:00:00Z", available: true },
+ *     { date: "2025-11-01T15:00:00Z", available: false }
+ *   ]}
+ *   onSlotSelect={(slot) => console.log(slot)}
+ * />
+ */
 const ScheduleComponent = ({ allSlots, onSlotSelect }) => {
   const [displayDate, setDisplayDate] = useState(new Date());
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -78,7 +113,6 @@ const ScheduleComponent = ({ allSlots, onSlotSelect }) => {
     <ScheduleWrapper>
       <ArrowButton onClick={() => navigateDays(-5)}>&lt;</ArrowButton>
       <ScheduleGrid>
-        {/* Linha dos Cabeçalhos dos Dias */}
         <HeaderRow>
           {visibleDays.map((date) => (
             <DayHeader key={date.toISOString()}>
@@ -95,8 +129,6 @@ const ScheduleComponent = ({ allSlots, onSlotSelect }) => {
             </DayHeader>
           ))}
         </HeaderRow>
-
-        {/* Linha dos Horários */}
         <SlotsRowContainer>
           <SlotsRow>
             {visibleDays.map((date) => {

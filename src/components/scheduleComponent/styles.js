@@ -59,7 +59,7 @@ export const DayHeader = styled.div`
   min-width: 0;
 
   @media (max-width: 500px) {
-    margin: 0 2px; // Reduz a margem entre as colunas
+    margin: 0 2px;
   }
 `;
 

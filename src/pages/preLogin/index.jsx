@@ -7,6 +7,19 @@ import {
 } from "./styles";
 import { Link, useNavigate } from "react-router-dom";
 
+/**
+ * Componente PreLogin - Página inicial/landing page para visitantes não autenticados.
+ *
+ * Exibe:
+ * - Slogan/mensagem principal do MindHub
+ * - Botão para agendar consulta (redireciona para login)
+ * - Link para registro de psicólogos
+ *
+ * Esta é a primeira página vista por usuários que acessam o site sem estar logados.
+ *
+ * @component
+ * @returns {JSX.Element} Landing page de apresentação
+ */
 function PreLogin() {
   const navigate = useNavigate();
 

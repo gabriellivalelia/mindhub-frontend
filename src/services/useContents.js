@@ -16,7 +16,8 @@ export function useContents(params = {}) {
       const response = await api.get("/contents", { params });
       return response.data;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutos (conteúdo muda menos frequentemente)
+    staleTime: 10 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 }
 

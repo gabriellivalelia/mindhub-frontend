@@ -16,24 +16,38 @@ import {
   ScrollBar,
 } from "./styles";
 
+/**
+ * Gera slots de horários para um dia específico.
+ * Cria horários de 05:00 até 23:00 em intervalos de 1 hora.
+ *
+ * @param {Date} date - Data para gerar os slots
+ * @returns {Array<Object>} Array de slots com data ISO e disponibilidade
+ */
 const generateDaySlots = (date) => {
   const slots = [];
   for (let hour = 5; hour <= 23; hour++) {
     const d = new Date(date);
-    // Usar horário local do usuário para exibição
     d.setHours(hour, 0, 0, 0);
+
+    // toISOString() converte para UTC automaticamente
     slots.push({ date: d.toISOString(), available: true });
   }
   return slots;
 };
 
+/**
+ * Agrupa slots por dia para facilitar a renderização.
+ *
+ * @param {Array<Object>} slots - Array de slots com data e disponibilidade
+ * @returns {Map<string, Array<Object>>} Map com data como chave e horários como valor
+ */
 const groupSlotsByDay = (slots) => {
   const grouped = new Map();
   if (!slots) return grouped;
 
   slots.forEach((slot) => {
     const date = new Date(slot.date);
-    const dayKey = date.toLocaleDateString("en-CA"); // yields YYYY-MM-DD in local timezone
+    const dayKey = date.toLocaleDateString("en-CA");
     const time = date.toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit",
@@ -52,6 +66,42 @@ const groupSlotsByDay = (slots) => {
   return grouped;
 };
 
+/**
+ * Componente AddAvailabilitiesComponent - Gerenciamento de disponibilidades do psicólogo.
+ *
+ * Permite ao psicólogo adicionar e remover horários disponíveis na agenda.
+ * Exibe slots existentes (disponíveis e agendados) e permite seleção de novos horários.
+ *
+ * Funcionalidades:
+ * - Visualização de agenda semanal com navegação
+ * - Geração automática de slots (05:00 - 23:00)
+ * - Seleção/deseleção de múltiplos horários
+ * - Diferenciação visual de slots disponíveis, agendados e novos
+ * - Callbacks para adição e remoção de slots
+ *
+ * Estados dos slots:
+ * - Disponível existente: Pode ser removido (azul)
+ * - Agendado: Não pode ser alterado (cinza)
+ * - Novo: Sendo adicionado (verde)
+ * - Slot vazio: Pode ser selecionado (branco)
+ *
+ * @component
+ * @param {Object} props - Props do componente
+ * @param {number} [props.daysVisible=5] - Número de dias exibidos na grade
+ * @param {Function} props.onSelectionChange - Callback quando novos slots são selecionados
+ * @param {Function} props.onRemovalChange - Callback quando slots existentes são removidos
+ * @param {Array<Object>} [props.existingAvailableSlots=[]] - Slots já disponíveis na agenda
+ * @param {Array<Object>} [props.existingBookedSlots=[]] - Slots com consultas agendadas
+ * @returns {JSX.Element} Grade de gerenciamento de disponibilidades
+ *
+ * @example
+ * <AddAvailabilitiesComponent
+ *   existingAvailableSlots={psychologist.availabilities}
+ *   existingBookedSlots={bookedSlots}
+ *   onSelectionChange={(slots) => setNewSlots(slots)}
+ *   onRemovalChange={(slots) => setRemovedSlots(slots)}
+ * />
+ */
 const AddAvailabilitiesComponent = ({
   daysVisible = 5,
   onSelectionChange,

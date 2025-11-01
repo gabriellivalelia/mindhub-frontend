@@ -1,7 +1,29 @@
 import axios from "axios";
 import { useAuthStore } from "../stores/useAuthStore";
 
-// Configuração base da API
+/**
+ * Instância configurada do Axios para comunicação com a API do backend.
+ *
+ * Configurações:
+ * - Base URL: Obtida de variável de ambiente (VITE_API_URL) ou localhost:8000
+ * - Timeout: 30 segundos
+ * - Headers padrão: Content-Type application/json
+ * - Interceptors: Adiciona token JWT automaticamente e trata erros globalmente
+ *
+ * Interceptor de Request:
+ * - Adiciona token de autenticação em todas as requisições
+ *
+ * Interceptor de Response:
+ * - 401 (Não autorizado): Limpa autenticação e força novo login
+ * - 403 (Proibido): Mensagem de sem permissão
+ * - 404 (Não encontrado): Mensagem de recurso não encontrado
+ * - 500+ (Erro servidor): Mensagem de erro do servidor
+ * - Network Error: Detecta falhas de conexão
+ * - Outros: Retorna mensagem do backend ou genérica
+ *
+ * @constant
+ * @type {import('axios').AxiosInstance}
+ */
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
   timeout: 30000,
@@ -9,27 +31,10 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
   paramsSerializer: {
-    indexes: null, // Remove índices dos arrays (transforma ?ids[0]=1&ids[1]=2 em ?ids=1&ids=2)
+    indexes: null,
   },
 });
 
-// // Flag para evitar múltiplas tentativas de refresh simultâneas
-// let isRefreshing = false;
-// let failedQueue = [];
-
-// const processQueue = (error, token = null) => {
-//   failedQueue.forEach((prom) => {
-//     if (error) {
-//       prom.reject(error);
-//     } else {
-//       prom.resolve(token);
-//     }
-//   });
-
-//   failedQueue = [];
-// };
-
-// Interceptor de requisição: adiciona token de autenticação
 api.interceptors.request.use(
   (config) => {
     const token = useAuthStore.getState().token;
@@ -45,15 +50,11 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor de resposta: trata erros e refresh de token
 api.interceptors.response.use(
   (response) => {
-    // Resposta bem-sucedida, retorna os dados
     return response;
   },
   async (error) => {
-    // const originalRequest = error.config;
-
     // Se não há resposta (erro de rede), rejeita imediatamente
     if (!error.response) {
       console.error("Erro de rede:", error.message);
@@ -65,7 +66,6 @@ api.interceptors.response.use(
 
     // Status 401 (Não autorizado) - token inválido/expirado
     if (error.response.status === 401) {
-      // Limpar autenticação
       useAuthStore.getState().clearAuth();
 
       return Promise.reject({
@@ -115,6 +115,27 @@ api.interceptors.response.use(
   }
 );
 
+/**
+ * Objeto com métodos auxiliares para requisições HTTP.
+ * Wrapper simplificado sobre a instância do Axios.
+ *
+ * @constant
+ * @type {Object}
+ * @property {Function} get - Requisição GET
+ * @property {Function} post - Requisição POST
+ * @property {Function} put - Requisição PUT
+ * @property {Function} patch - Requisição PATCH
+ * @property {Function} delete - Requisição DELETE
+ *
+ * @example
+ * import { apiClient } from './api';
+ *
+ * // GET request
+ * const data = await apiClient.get('/users');
+ *
+ * // POST request
+ * const result = await apiClient.post('/users', { name: 'John' });
+ */
 // Funções auxiliares para requisições comuns
 export const apiClient = {
   get: (url, config) => api.get(url, config),

@@ -14,6 +14,10 @@ const Colors = {
   LIGHT_GREY: "#e0e0e0",
   BLACK: "#000000",
   RED: "#3f0000ff",
+  REMOVAL_BG: "#ffcccc",
+  REMOVAL_BG_HOVER: "#ff9999",
+  REMOVAL_TEXT: "#cc0000",
+  REMOVAL_BORDER: "#cc0000",
 };
 
 export default Colors;

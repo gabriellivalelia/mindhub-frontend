@@ -33,6 +33,12 @@ import { SubHeader } from "../../components";
 import { useMarkPaymentSent } from "../../services/useAppointments";
 import { useToastStore } from "../../stores/useToastStore";
 
+/**
+ * Formata um valor numérico para o formato de moeda brasileira (BRL).
+ *
+ * @param {number} value - Valor a ser formatado
+ * @returns {string} Valor formatado como "R$ 150,00"
+ */
 function formatBRL(value) {
   try {
     return new Intl.NumberFormat("pt-BR", {
@@ -44,6 +50,15 @@ function formatBRL(value) {
   }
 }
 
+/**
+ * Constrói a string de pagamento PIX com chave, valor e descrição.
+ *
+ * @param {Object} params - Parâmetros do PIX
+ * @param {string} [params.pixKey] - Chave PIX do destinatário
+ * @param {number} [params.amount] - Valor do pagamento
+ * @param {string} [params.description] - Descrição do pagamento
+ * @returns {string} String formatada para pagamento PIX
+ */
 const buildPixString = ({
   pixKey = "00000000-0000-0000-0000-000000000000",
   amount = 0,
@@ -52,6 +67,26 @@ const buildPixString = ({
   return `PIX|key:${pixKey}|amount:${amount.toFixed(2)}|desc:${description}`;
 };
 
+/**
+ * Componente Payment - Página de pagamento de consulta via PIX.
+ *
+ * Funcionalidades:
+ * - Exibe informações do psicólogo e horário da consulta
+ * - Gera QR Code para pagamento PIX
+ * - Permite copiar código PIX
+ * - Marca pagamento como enviado
+ * - Redirecionamento para home após confirmação
+ * - Tratamento de estados inválidos (sem dados de pagamento)
+ *
+ * Dados necessários (via location.state):
+ * - psychologist: Dados do psicólogo (nome, foto, especialidades, etc)
+ * - slot: Horário da consulta
+ * - price: Valor da consulta
+ * - appointment_id: ID da consulta agendada
+ *
+ * @component
+ * @returns {JSX.Element} Página de pagamento PIX
+ */
 const Payment = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -101,7 +136,7 @@ const Payment = () => {
       );
       navigate("/", { replace: true });
     } catch (error) {
-      console.error("Error marking payment sent:", error);
+      console.error("Erro ao marcar pagamento como enviado:", error);
       addToast(
         error.response?.data?.message ||
           "Erro ao marcar pagamento. Tente novamente.",
@@ -139,16 +174,6 @@ const Payment = () => {
               </div>
             </FlexRow>
             <RightAligned>
-              {/* <FlexRow gap="8px" justify="flex-end">
-                <Rating
-                  value={psychologist.rating}
-                  precision={0.1}
-                  readOnly
-                  size="small"
-                  sx={{ color: Colors.ORANGE }}
-                />
-                <Value>{Number(psychologist.rating).toFixed(1)}</Value>
-              </FlexRow> */}
               <PriceStrong>{formatBRL(price)}</PriceStrong>
             </RightAligned>
           </InfoRow>

@@ -2,8 +2,6 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Button,
   ButtonContainer,
-  DropDownContainer,
-  ImageProfile,
   ImageProfileContainer,
   Logo,
   LogoContainer,
@@ -16,12 +14,26 @@ import AccountMenu from "./accountMenu";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useCurrentUser } from "../../services/useCurrentUser";
 
+/**
+ * Componente Header - Cabeçalho principal da aplicação.
+ *
+ * Exibe navegação diferenciada dependendo do estado de autenticação:
+ * - Usuário não autenticado: Logo + Navegação + Botão "Entrar"
+ * - Usuário autenticado: Logo + Navegação + Menu de perfil com avatar
+ *
+ * Links de navegação:
+ * - Home: Dashboard principal
+ * - Consultas: Lista de consultas (paciente ou psicólogo)
+ * - Conteúdos: Área de conteúdos educacionais
+ *
+ * @component
+ * @returns {JSX.Element} Cabeçalho da aplicação
+ */
 function Header() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { data: user, isError } = useCurrentUser();
   const navigate = useNavigate();
 
-  // Considera autenticado apenas se tiver token E user válido
   const isActuallyAuthenticated = isAuthenticated && user && !isError;
 
   return (

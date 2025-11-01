@@ -9,7 +9,6 @@ export const PageContainer = styled.div`
   align-items: center;
   justify-content: flex-start;
   min-height: 100%;
-  /* ensure width doesn't force horizontal scroll */
   min-width: 100%;
 `;
 
@@ -67,7 +66,6 @@ export const SearchIconWrapper = styled.div`
 
 export const SearchBar = styled.input`
   flex: 1;
-  /* espaço à esquerda para o ícone */
   padding: 0.6rem 0.8rem 0.6rem 2.5rem;
   border-radius: 6px;
   border: 2px solid ${Colors.ORANGE};
@@ -132,7 +130,7 @@ export const PsychologistCard = styled.div`
   background-color: ${Colors.WHITE};
   align-items: flex-start;
   border-radius: 8px;
-  flex-direction: column; /* stack on tablet */
+  flex-direction: column;
   padding: 0.6rem;
   gap: 0.6rem;
   @media (max-width: ${BreakPoints.TABLET}) {
@@ -191,7 +189,6 @@ export const PrimaryInfo = styled.div`
   @media (max-width: ${BreakPoints.TABLET}) {
     padding-left: 1%;
   }
-  /* allow this flex child to shrink to prevent overflow on small screens */
   min-width: 0;
 `;
 
@@ -273,7 +270,6 @@ export const InfoWithIcon = styled.div`
   text-overflow: ellipsis;
   white-space: nowrap;
   @media (max-width: ${BreakPoints.TABLET}) {
-    /* allow wrapping on smaller screens to avoid horizontal scroll */
     white-space: normal;
     overflow: visible;
   }
@@ -304,7 +300,6 @@ export const ScheduleContainer = styled.div`
   }
 `;
 
-// make the scheduling area take a fixed column on desktop so it aligns vertically
 export const ScheduleColumn = styled.div`
   min-width: 220px;
   display: flex;

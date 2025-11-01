@@ -27,10 +27,10 @@ export function useCurrentUser() {
       }
     },
     enabled: isAuthenticated && !!token,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    retry: false, // Não retry em erro de autenticação
-    refetchOnMount: true, // Sempre revalidar ao montar
-    refetchOnWindowFocus: true, // Revalidar ao focar janela
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Limpar auth se query falhar com erro de autenticação

@@ -25,6 +25,33 @@ import {
 import { useToastStore } from "../../stores/useToastStore";
 import CircularProgress from "@mui/material/CircularProgress";
 
+/**
+ * Componente WriteContent - Página de criação/edição de conteúdos educacionais.
+ *
+ * Permite que psicólogos criem ou editem artigos em formato Markdown.
+ *
+ * Funcionalidades:
+ * - Editor de texto com suporte a Markdown
+ * - Preview em tempo real do conteúdo formatado
+ * - Modo criação: Novo conteúdo
+ * - Modo edição: Editar conteúdo existente (via query param ?edit=id)
+ * - Validação de campos obrigatórios
+ * - Sanitização de HTML para segurança
+ * - Navegação de volta para lista de conteúdos
+ *
+ * Acesso:
+ * - Restrito a psicólogos
+ *
+ * @component
+ * @returns {JSX.Element} Página de editor de conteúdo
+ *
+ * @example
+ * // Criar novo conteúdo
+ * /write-content
+ *
+ * // Editar conteúdo existente
+ * /write-content?edit=123
+ */
 function WriteContent() {
   const navigate = useNavigate();
   const addToast = useToastStore((state) => state.addToast);
@@ -49,7 +76,6 @@ function WriteContent() {
     },
   });
 
-  // Carregar dados para edição
   useEffect(() => {
     if (existingContent) {
       reset({
@@ -64,7 +90,6 @@ function WriteContent() {
   const onSubmit = async (data) => {
     try {
       if (editId) {
-        // Modo edição
         await updateContentMutation.mutateAsync({
           contentId: editId,
           data: {
@@ -74,7 +99,6 @@ function WriteContent() {
         });
         addToast("Conteúdo atualizado com sucesso!", "success");
       } else {
-        // Modo criação
         await createContentMutation.mutateAsync({
           title: data.title,
           body: data.body,
@@ -82,7 +106,6 @@ function WriteContent() {
         addToast("Conteúdo criado com sucesso!", "success");
       }
 
-      // Navegar de volta para a lista de conteúdos
       setTimeout(() => {
         navigate("/contents");
       }, 1500);

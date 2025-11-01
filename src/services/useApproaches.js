@@ -11,6 +11,6 @@ export function useApproaches(params = {}) {
       const response = await api.get("/approaches", { params });
       return response.data;
     },
-    staleTime: 30 * 60 * 1000, // 30 minutos
+    staleTime: 30 * 60 * 1000,
   });
 }
