@@ -24,11 +24,34 @@ function isValidCPF(cpf) {
   );
 }
 
+function isValidBrazilianPhone(phone) {
+  if (!phone) return false;
+  const onlyDigits = phone.replace(/\D/g, "");
+  // Deve ter 11 dígitos (DDD + 9 dígitos) ou 10 dígitos (DDD + 8 dígitos)
+  if (onlyDigits.length !== 10 && onlyDigits.length !== 11) return false;
+  // Se tiver 11 dígitos, o terceiro dígito deve ser 9 (celular)
+  if (onlyDigits.length === 11 && onlyDigits[2] !== "9") return false;
+  return true;
+}
+
 const passwordSchema = z
   .string()
   .nonempty("A senha é obrigatória!")
-  .min(6, "A senha precisa ter no mínimo 6 caracteres!")
-  .max(20, "A senha pode ter no máximo 20 caracteres!");
+  .min(6, "A senha deve ter entre 6 e 20 caracteres!")
+  .max(20, "A senha deve ter entre 6 e 20 caracteres!")
+  .refine((val) => /[0-9]/.test(val), {
+    message: "A senha deve incluir pelo menos um número!",
+  })
+  .refine((val) => /[A-Z]/.test(val), {
+    message: "A senha deve incluir pelo menos uma letra maiúscula!",
+  })
+  .refine((val) => /[a-z]/.test(val), {
+    message: "A senha deve incluir pelo menos uma letra minúscula!",
+  })
+  .refine((val) => /[$@#%!^&*()\-_+=]/.test(val), {
+    message:
+      "A senha deve incluir pelo menos um caractere especial: $@#%!^&*()-_+=",
+  });
 
 const baseUserSchema = {
   name: z
@@ -71,6 +94,7 @@ const baseUserSchema = {
         /^\(\d{2}\) \d{5}-\d{4}$/,
         "Formato de telefone inválido. Use (XX) XXXXX-XXXX"
       )
+      .refine((val) => isValidBrazilianPhone(val), "Telefone inválido!")
   ),
   gender: z.preprocess((v) => {
     if (v == null) return "";
