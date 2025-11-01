@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
 import api from "./api";
 import { useAuthStore } from "../stores/useAuthStore";
 
@@ -11,8 +10,13 @@ export function useCurrentUser() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const token = useAuthStore((state) => state.token);
   const clearAuth = useAuthStore((state) => state.clearAuth);
-
-  const query = useQuery({
+  console.log(
+    "useCurrentUser called with isAuthenticated:",
+    isAuthenticated,
+    "token:",
+    token
+  );
+  return useQuery({
     queryKey: ["currentUser", token],
     queryFn: async () => {
       try {
@@ -20,7 +24,7 @@ export function useCurrentUser() {
         return response.data;
       } catch (error) {
         // Se token inválido/expirado, limpar auth
-        if (error.response?.status === 401 || error.response?.status === 403) {
+        if (error?.status === 401 || error?.status === 403) {
           clearAuth();
         }
         throw error;
@@ -32,15 +36,6 @@ export function useCurrentUser() {
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
-
-  // Limpar auth se query falhar com erro de autenticação
-  useEffect(() => {
-    if (query.isError && query.error?.response?.status === 401) {
-      clearAuth();
-    }
-  }, [query.isError, query.error, clearAuth]);
-
-  return query;
 }
 
 export default useCurrentUser;

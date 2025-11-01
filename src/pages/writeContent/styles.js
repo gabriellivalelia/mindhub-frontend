@@ -35,7 +35,6 @@ export const EditorRow = styled.div`
   display: flex;
   gap: 1rem;
   align-items: flex-start;
-  /* On wider screens keep side-by-side, on tablet and below stack */
   @media (max-width: ${BreakPoints.TABLET}) {
     flex-direction: column;
   }

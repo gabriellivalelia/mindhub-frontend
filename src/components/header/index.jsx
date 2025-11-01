@@ -33,7 +33,6 @@ function Header() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { data: user, isError } = useCurrentUser();
   const navigate = useNavigate();
-
   const isActuallyAuthenticated = isAuthenticated && user && !isError;
 
   return (
