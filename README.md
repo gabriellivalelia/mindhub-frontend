@@ -44,10 +44,18 @@ npm install
 
 #### 3. Configurar variáveis de ambiente
 
-Crie um arquivo `.env` na raiz do projeto:
+O projeto inclui um arquivo `./.env.example` na raiz com variáveis úteis para desenvolvimento.
 
-```env
+- `VITE_API_URL` é usado pelo frontend para apontar para a API do backend. Por padrão:
+
+```
 VITE_API_URL=http://localhost:8000
+```
+
+Como usar
+
+```bash
+cp .env.example .env
 ```
 
 **Nota**: Certifique-se de que o backend está rodando na porta 8000.
